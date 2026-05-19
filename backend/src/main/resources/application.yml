@@ -1,0 +1,27 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: he-thong-thi-online-v2
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration: ${JWT_EXPIRATION:86400000}
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
+  seed:
+    enabled: ${SEED_ENABLED:false}
+    admin-username: ${SEED_ADMIN_USERNAME:admin}
+    admin-email: ${SEED_ADMIN_EMAIL:admin@example.com}
+    admin-password: ${SEED_ADMIN_PASSWORD:}
+    teacher-username: ${SEED_TEACHER_USERNAME:teacher}
+    teacher-email: ${SEED_TEACHER_EMAIL:teacher@example.com}
+    teacher-password: ${SEED_TEACHER_PASSWORD:}
+    student-username: ${SEED_STUDENT_USERNAME:student}
+    student-email: ${SEED_STUDENT_EMAIL:student@example.com}
+    student-password: ${SEED_STUDENT_PASSWORD:}
