@@ -6,7 +6,7 @@ Tai lieu nay chuan hoa schema MongoDB cho he thong thi online. Cac quan he dung 
 
 | Collection | Muc dich | Field chinh | Index chinh |
 | --- | --- | --- | --- |
-| `users` | Tai khoan dang nhap va phan quyen | `username`, `email`, `password`, `fullName`, `dateOfBirth`, `phone`, `roles`, `status`, `createdAt`, `updatedAt` | `username` unique, `email` unique, `roles` |
+| `accounts` | Tai khoan dang nhap va phan quyen | `username`, `email`, `password`, `fullName`, `dateOfBirth`, `phone`, `role`, `status`, `createdAt`, `updatedAt` | `username` unique, `email` unique, `role`, `status` |
 | `students` | Ho so sinh vien | `studentCode`, `userId`, `primaryClassId`, `classIds`, `status` | `studentCode` unique, `userId` unique, `primaryClassId`, `classIds` |
 | `teachers` | Ho so giang vien | `teacherCode`, `userId`, `classIds`, `subjectIds` | `teacherCode` unique, `userId` unique, `classIds`, `subjectIds` |
 | `admins` | Ho so admin | `adminCode`, `userId` | `adminCode` unique, `userId` unique |
@@ -38,7 +38,7 @@ Tai lieu nay chuan hoa schema MongoDB cho he thong thi online. Cac quan he dung 
 
 ## Tach Rieng Collection
 
-- Tach `students`, `teachers`, `admins` khoi `users` de giu tai khoan dang nhap gon va mo rong thong tin rieng theo vai tro.
+- Tach `students`, `teachers`, `admins` khoi `accounts` de giu tai khoan dang nhap gon va mo rong thong tin rieng theo vai tro.
 - Tach `class_students` vi sinh vien co the hoc nhieu lop hoc phan.
 - Tach `teaching_assignments` vi lop, mon va giang vien la quan he N-N.
 - Tach `questions` khoi `question_banks` de query, import, random va thong ke cau hoi theo ngan hang.

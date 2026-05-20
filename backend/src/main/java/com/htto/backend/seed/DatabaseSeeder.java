@@ -2,6 +2,7 @@ package com.htto.backend.seed;
 
 import com.htto.backend.config.SeedProperties;
 import com.htto.backend.domain.AdminProfile;
+import com.htto.backend.domain.Account;
 import com.htto.backend.domain.ClassStudent;
 import com.htto.backend.domain.DomainEnums.AssignmentStatus;
 import com.htto.backend.domain.DomainEnums.ClassStatus;
@@ -22,7 +23,7 @@ import com.htto.backend.domain.StudentProfile;
 import com.htto.backend.domain.Subject;
 import com.htto.backend.domain.TeacherProfile;
 import com.htto.backend.domain.TeachingAssignment;
-import com.htto.backend.domain.User;
+import com.htto.backend.repository.AccountRepository;
 import com.htto.backend.domain.embedded.AnswerDefinition;
 import com.htto.backend.domain.embedded.AnswerOption;
 import com.htto.backend.domain.embedded.ExamQuestionRef;
@@ -39,13 +40,11 @@ import com.htto.backend.repository.StudentProfileRepository;
 import com.htto.backend.repository.SubjectRepository;
 import com.htto.backend.repository.TeacherProfileRepository;
 import com.htto.backend.repository.TeachingAssignmentRepository;
-import com.htto.backend.repository.UserRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -66,7 +65,7 @@ public class DatabaseSeeder implements ApplicationRunner {
 
     private final SeedProperties seedProperties;
     private final PasswordEncoder passwordEncoder;
-    private final UserRepository userRepository;
+    private final AccountRepository accountRepository;
     private final AdminProfileRepository adminProfileRepository;
     private final TeacherProfileRepository teacherProfileRepository;
     private final StudentProfileRepository studentProfileRepository;
@@ -82,7 +81,7 @@ public class DatabaseSeeder implements ApplicationRunner {
     public DatabaseSeeder(
             SeedProperties seedProperties,
             PasswordEncoder passwordEncoder,
-            UserRepository userRepository,
+            AccountRepository accountRepository,
             AdminProfileRepository adminProfileRepository,
             TeacherProfileRepository teacherProfileRepository,
             StudentProfileRepository studentProfileRepository,
@@ -97,7 +96,7 @@ public class DatabaseSeeder implements ApplicationRunner {
     ) {
         this.seedProperties = seedProperties;
         this.passwordEncoder = passwordEncoder;
-        this.userRepository = userRepository;
+        this.accountRepository = accountRepository;
         this.adminProfileRepository = adminProfileRepository;
         this.teacherProfileRepository = teacherProfileRepository;
         this.studentProfileRepository = studentProfileRepository;
@@ -119,21 +118,21 @@ public class DatabaseSeeder implements ApplicationRunner {
 
         validateSeedPasswords();
 
-        User adminUser = createUserIfMissing(
+        Account adminAccount = createAccountIfMissing(
                 seedProperties.adminUsername(),
                 seedProperties.adminEmail(),
                 seedProperties.adminPassword(),
                 "Seed Admin",
                 Role.ADMIN
         );
-        User teacherUser = createUserIfMissing(
+        Account teacherAccount = createAccountIfMissing(
                 seedProperties.teacherUsername(),
                 seedProperties.teacherEmail(),
                 seedProperties.teacherPassword(),
                 "Seed Teacher",
                 Role.TEACHER
         );
-        User studentUser = createUserIfMissing(
+        Account studentAccount = createAccountIfMissing(
                 seedProperties.studentUsername(),
                 seedProperties.studentEmail(),
                 seedProperties.studentPassword(),
@@ -141,9 +140,9 @@ public class DatabaseSeeder implements ApplicationRunner {
                 Role.STUDENT
         );
 
-        AdminProfile admin = createAdminProfileIfMissing(adminUser);
-        TeacherProfile teacher = createTeacherProfileIfMissing(teacherUser);
-        StudentProfile student = createStudentProfileIfMissing(studentUser);
+        AdminProfile admin = createAdminProfileIfMissing(adminAccount);
+        TeacherProfile teacher = createTeacherProfileIfMissing(teacherAccount);
+        StudentProfile student = createStudentProfileIfMissing(studentAccount);
         Subject subject = createSubjectIfMissing();
         SchoolClass schoolClass = createClassIfMissing(teacher);
 
@@ -173,63 +172,63 @@ public class DatabaseSeeder implements ApplicationRunner {
         }
     }
 
-    private User createUserIfMissing(
+    private Account createAccountIfMissing(
             String username,
             String email,
             String password,
             String fullName,
             Role role
     ) {
-        return userRepository.findByUsernameOrEmail(username, email)
+        return accountRepository.findByUsernameOrEmail(username, email)
                 .map(existing -> ensureRole(existing, role))
                 .orElseGet(() -> {
-                    User user = new User();
-                    user.setUsername(username);
-                    user.setEmail(email);
-                    user.setPassword(passwordEncoder.encode(password));
-                    user.setFullName(fullName);
-                    user.setRoles(Set.of(role));
-                    return userRepository.save(user);
+                    Account account = new Account();
+                    account.setUsername(username);
+                    account.setEmail(email);
+                    account.setPassword(passwordEncoder.encode(password));
+                    account.setFullName(fullName);
+                    account.setRole(role);
+                    return accountRepository.save(account);
                 });
     }
 
-    private User ensureRole(User user, Role role) {
-        if (user.getRoles().contains(role)) {
-            return user;
+    private Account ensureRole(Account account, Role role) {
+        if (account.getRole() == role) {
+            return account;
         }
-        user.getRoles().add(role);
-        return userRepository.save(user);
+        account.setRole(role);
+        return accountRepository.save(account);
     }
 
-    private AdminProfile createAdminProfileIfMissing(User user) {
-        return adminProfileRepository.findByUserId(user.getId())
+    private AdminProfile createAdminProfileIfMissing(Account account) {
+        return adminProfileRepository.findByUserId(account.getId())
                 .or(() -> adminProfileRepository.findByAdminCode(ADMIN_CODE))
                 .orElseGet(() -> {
                     AdminProfile profile = new AdminProfile();
                     profile.setAdminCode(ADMIN_CODE);
-                    profile.setUserId(user.getId());
+                    profile.setUserId(account.getId());
                     return adminProfileRepository.save(profile);
                 });
     }
 
-    private TeacherProfile createTeacherProfileIfMissing(User user) {
-        return teacherProfileRepository.findByUserId(user.getId())
+    private TeacherProfile createTeacherProfileIfMissing(Account account) {
+        return teacherProfileRepository.findByUserId(account.getId())
                 .or(() -> teacherProfileRepository.findByTeacherCode(TEACHER_CODE))
                 .orElseGet(() -> {
                     TeacherProfile profile = new TeacherProfile();
                     profile.setTeacherCode(TEACHER_CODE);
-                    profile.setUserId(user.getId());
+                    profile.setUserId(account.getId());
                     return teacherProfileRepository.save(profile);
                 });
     }
 
-    private StudentProfile createStudentProfileIfMissing(User user) {
-        return studentProfileRepository.findByUserId(user.getId())
+    private StudentProfile createStudentProfileIfMissing(Account account) {
+        return studentProfileRepository.findByUserId(account.getId())
                 .or(() -> studentProfileRepository.findByStudentCode(STUDENT_CODE))
                 .orElseGet(() -> {
                     StudentProfile profile = new StudentProfile();
                     profile.setStudentCode(STUDENT_CODE);
-                    profile.setUserId(user.getId());
+                    profile.setUserId(account.getId());
                     return studentProfileRepository.save(profile);
                 });
     }

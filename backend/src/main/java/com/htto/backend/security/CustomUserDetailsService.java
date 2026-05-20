@@ -1,9 +1,7 @@
 package com.htto.backend.security;
 
-import com.htto.backend.domain.Role;
-import com.htto.backend.domain.User;
-import com.htto.backend.repository.UserRepository;
-import java.util.Collection;
+import com.htto.backend.domain.Account;
+import com.htto.backend.repository.AccountRepository;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,28 +12,26 @@ import org.springframework.stereotype.Service;
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
-    private final UserRepository userRepository;
+    private final AccountRepository accountRepository;
 
-    public CustomUserDetailsService(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public CustomUserDetailsService(AccountRepository accountRepository) {
+        this.accountRepository = accountRepository;
     }
 
     @Override
     public UserDetails loadUserByUsername(String usernameOrEmail) {
-        User user = userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        Account account = accountRepository.findByUsernameAndDeletedFalse(usernameOrEmail)
+                .orElseThrow(() -> new UsernameNotFoundException("Account not found"));
 
         return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getUsername())
-                .password(user.getPassword())
-                .disabled(!user.isEnabled())
-                .authorities(toAuthorities(user.getRoles()))
+                .username(account.getUsername())
+                .password(account.getPassword())
+                .disabled(!account.isEnabled())
+                .authorities(toAuthority(account))
                 .build();
     }
 
-    private Collection<? extends GrantedAuthority> toAuthorities(Collection<Role> roles) {
-        return roles.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
-                .toList();
+    private GrantedAuthority toAuthority(Account account) {
+        return new SimpleGrantedAuthority("ROLE_" + account.getRole().name());
     }
 }

@@ -5,11 +5,6 @@ public final class DomainEnums {
     private DomainEnums() {
     }
 
-    public enum AccountStatus {
-        ACTIVE,
-        LOCKED
-    }
-
     public enum AcademicStatus {
         ACTIVE,
         INACTIVE,
