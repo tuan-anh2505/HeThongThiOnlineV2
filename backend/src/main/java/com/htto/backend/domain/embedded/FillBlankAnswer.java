@@ -5,10 +5,19 @@ import java.util.List;
 
 public class FillBlankAnswer {
 
+    private String answerId;
     private List<String> acceptedAnswers = new ArrayList<>();
-    private boolean caseSensitive;
-    private boolean ignoreAccents = true;
-    private boolean fuzzyMatching;
+    private boolean ignoreCase = true;
+    private boolean ignoreAccent = true;
+    private boolean trimSpace = true;
+
+    public String getAnswerId() {
+        return answerId;
+    }
+
+    public void setAnswerId(String answerId) {
+        this.answerId = answerId;
+    }
 
     public List<String> getAcceptedAnswers() {
         return acceptedAnswers;
@@ -18,27 +27,27 @@ public class FillBlankAnswer {
         this.acceptedAnswers = acceptedAnswers;
     }
 
-    public boolean isCaseSensitive() {
-        return caseSensitive;
+    public boolean isIgnoreCase() {
+        return ignoreCase;
     }
 
-    public void setCaseSensitive(boolean caseSensitive) {
-        this.caseSensitive = caseSensitive;
+    public void setIgnoreCase(boolean ignoreCase) {
+        this.ignoreCase = ignoreCase;
     }
 
-    public boolean isIgnoreAccents() {
-        return ignoreAccents;
+    public boolean isIgnoreAccent() {
+        return ignoreAccent;
     }
 
-    public void setIgnoreAccents(boolean ignoreAccents) {
-        this.ignoreAccents = ignoreAccents;
+    public void setIgnoreAccent(boolean ignoreAccent) {
+        this.ignoreAccent = ignoreAccent;
     }
 
-    public boolean isFuzzyMatching() {
-        return fuzzyMatching;
+    public boolean isTrimSpace() {
+        return trimSpace;
     }
 
-    public void setFuzzyMatching(boolean fuzzyMatching) {
-        this.fuzzyMatching = fuzzyMatching;
+    public void setTrimSpace(boolean trimSpace) {
+        this.trimSpace = trimSpace;
     }
 }

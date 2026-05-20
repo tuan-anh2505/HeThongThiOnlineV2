@@ -340,9 +340,9 @@ public class DatabaseSeeder implements ApplicationRunner {
                 .orElseGet(() -> {
                     Question question = new Question();
                     question.setQuestionBankId(questionBank.getId());
-                    question.setType(QuestionType.SINGLE_CHOICE);
+                    question.setType(QuestionType.MULTIPLE_CHOICE);
                     question.setContent(QUESTION_CONTENT);
-                    question.setPoint(BigDecimal.ONE);
+                    question.setScore(BigDecimal.ONE);
                     question.setDifficulty(Difficulty.EASY);
                     question.setTopic("Java");
                     question.setStatus(QuestionStatus.ACTIVE);
@@ -408,7 +408,7 @@ public class DatabaseSeeder implements ApplicationRunner {
     private ExamQuestionRef createQuestionRef(Question question) {
         ExamQuestionRef questionRef = new ExamQuestionRef();
         questionRef.setQuestionId(question.getId());
-        questionRef.setPoint(question.getPoint());
+        questionRef.setPoint(question.getScore());
         questionRef.setDisplayOrder(1);
         return questionRef;
     }

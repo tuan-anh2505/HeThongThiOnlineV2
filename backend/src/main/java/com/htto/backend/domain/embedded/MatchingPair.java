@@ -2,16 +2,17 @@ package com.htto.backend.domain.embedded;
 
 public class MatchingPair {
 
-    private String pairId;
+    private String matchingId;
     private String leftText;
     private String rightText;
+    private int orderIndex;
 
-    public String getPairId() {
-        return pairId;
+    public String getMatchingId() {
+        return matchingId;
     }
 
-    public void setPairId(String pairId) {
-        this.pairId = pairId;
+    public void setMatchingId(String matchingId) {
+        this.matchingId = matchingId;
     }
 
     public String getLeftText() {
@@ -28,5 +29,13 @@ public class MatchingPair {
 
     public void setRightText(String rightText) {
         this.rightText = rightText;
+    }
+
+    public int getOrderIndex() {
+        return orderIndex;
+    }
+
+    public void setOrderIndex(int orderIndex) {
+        this.orderIndex = orderIndex;
     }
 }

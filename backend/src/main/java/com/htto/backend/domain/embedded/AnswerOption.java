@@ -4,17 +4,17 @@ public class AnswerOption {
 
     private String optionId;
     private String content;
-    private boolean correct;
-    private int displayOrder;
+    private boolean isCorrect;
+    private int orderIndex;
 
     public AnswerOption() {
     }
 
-    public AnswerOption(String optionId, String content, boolean correct, int displayOrder) {
+    public AnswerOption(String optionId, String content, boolean isCorrect, int orderIndex) {
         this.optionId = optionId;
         this.content = content;
-        this.correct = correct;
-        this.displayOrder = displayOrder;
+        this.isCorrect = isCorrect;
+        this.orderIndex = orderIndex;
     }
 
     public String getOptionId() {
@@ -34,18 +34,18 @@ public class AnswerOption {
     }
 
     public boolean isCorrect() {
-        return correct;
+        return isCorrect;
     }
 
     public void setCorrect(boolean correct) {
-        this.correct = correct;
+        isCorrect = correct;
     }
 
-    public int getDisplayOrder() {
-        return displayOrder;
+    public int getOrderIndex() {
+        return orderIndex;
     }
 
-    public void setDisplayOrder(int displayOrder) {
-        this.displayOrder = displayOrder;
+    public void setOrderIndex(int orderIndex) {
+        this.orderIndex = orderIndex;
     }
 }

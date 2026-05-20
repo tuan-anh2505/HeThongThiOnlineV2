@@ -15,7 +15,7 @@ Tai lieu nay chuan hoa schema MongoDB cho he thong thi online. Cac quan he dung 
 | `subjects` | Mon thi | `subjectCode`, `subjectName`, `description`, `status` | `subjectCode` unique |
 | `class_subject_teachers` | Quan he lop - mon - giang vien | `classId`, `subjectId`, `teacherId`, `semester`, `schoolYear`, `status` | compound `classId + subjectId + teacherId`, `classId`, `subjectId`, `teacherId`, `status` |
 | `question_banks` | Ngan hang cau hoi | `name`, `description`, `subjectId`, `teacherId`, `status` | `subjectId`, `teacherId` |
-| `questions` | Cau hoi thuoc ngan hang | `questionBankId`, `type`, `content`, `point`, `difficulty`, `topic`, `status`, `answerDefinition` | `questionBankId`, compound `questionBankId + type + difficulty` |
+| `questions` | Cau hoi thuoc ngan hang | `questionBankId`, `type`, `content`, `score`, `difficulty`, `topic`, `status`, `answerDefinition` | `questionBankId`, compound `questionBankId + type + difficulty` |
 | `exams` | Bai thi | `title`, `classIds`, `subjectId`, `questionBankId`, `teacherId`, `durationMinutes`, `maxAttempts`, `totalScore`, `settings`, `selectionConfig`, `questionRefs`, `status` | `classIds`, `subjectId`, `questionBankId`, `teacherId` |
 | `exam_sessions` | Ca thi | `examId`, `startAt`, `endAt`, `status` | `examId` |
 | `submissions` | Phieu bai lam | `studentId`, `examId`, `sessionId`, `startedAt`, `submittedAt`, `totalScore`, `attemptNumber`, `status` | compound unique `examId + studentId + attemptNumber`, `studentId`, `examId`, `sessionId` |
@@ -49,7 +49,7 @@ Tai lieu nay chuan hoa schema MongoDB cho he thong thi online. Cac quan he dung 
 
 - `Role`: `ADMIN`, `TEACHER`, `STUDENT`
 - `AccountStatus`: `ACTIVE`, `LOCKED`
-- `QuestionType`: `TRUE_FALSE`, `SINGLE_CHOICE`, `FILL_BLANK`, `MATCHING`
+- `QuestionType`: `TRUE_FALSE`, `MULTIPLE_CHOICE`, `FILL_BLANK`, `MATCHING`
 - `Difficulty`: `EASY`, `MEDIUM`, `HARD`
 - `ExamStatus`: `DRAFT`, `PUBLISHED`, `OPEN`, `CLOSED`, `CANCELLED`
 - `ExamSessionStatus`: `NOT_OPENED`, `IN_PROGRESS`, `ENDED`, `CANCELLED`
@@ -69,4 +69,4 @@ SEED_TEACHER_PASSWORD=change-this-teacher-password
 SEED_STUDENT_PASSWORD=change-this-student-password
 ```
 
-Seeder tao cac du lieu co ban: admin, teacher, student, class, subject, teaching assignment, question bank, question, exam va exam session.
+Seeder tao cac du lieu co ban: admin, teacher, student, class, subject, class-subject-teacher assignment, question bank, question, exam va exam session.

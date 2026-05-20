@@ -49,7 +49,7 @@ public final class DomainEnums {
 
     public enum QuestionType {
         TRUE_FALSE,
-        SINGLE_CHOICE,
+        MULTIPLE_CHOICE,
         FILL_BLANK,
         MATCHING
     }

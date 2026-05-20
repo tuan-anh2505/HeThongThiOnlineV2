@@ -20,7 +20,7 @@ public class Question extends AuditableDocument {
 
     private String content;
 
-    private BigDecimal point;
+    private BigDecimal score;
 
     private Difficulty difficulty;
 
@@ -54,12 +54,12 @@ public class Question extends AuditableDocument {
         this.content = content;
     }
 
-    public BigDecimal getPoint() {
-        return point;
+    public BigDecimal getScore() {
+        return score;
     }
 
-    public void setPoint(BigDecimal point) {
-        this.point = point;
+    public void setScore(BigDecimal score) {
+        this.score = score;
     }
 
     public Difficulty getDifficulty() {
