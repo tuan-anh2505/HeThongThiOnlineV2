@@ -10,8 +10,8 @@ Tai lieu nay chuan hoa schema MongoDB cho he thong thi online. Cac quan he dung 
 | `students` | Ho so sinh vien | `studentCode`, `accountId`, `mainClassId`, `classIds`, `status` | `studentCode` unique, `accountId` unique, `mainClassId`, `classIds` |
 | `teachers` | Ho so giang vien | `teacherCode`, `accountId`, `status`, `classIds`, `subjectIds` | `teacherCode` unique, `accountId` unique, `classIds`, `subjectIds` |
 | `admins` | Ho so admin | `adminCode`, `accountId` | `adminCode` unique, `accountId` unique |
-| `classes` | Lop hoc/lop hoc phan | `classCode`, `name`, `studentCount`, `teacherId`, `status` | `classCode` unique, `teacherId` |
-| `class_students` | Quan he lop - sinh vien | `classId`, `studentId`, `addedAt`, `status` | compound unique `classId + studentId`, `classId`, `studentId` |
+| `classes` | Lop hoc/lop hoc phan | `classCode`, `className`, `studentCount`, `teacherId`, `status` | `classCode` unique, `teacherId` |
+| `class_students` | Quan he lop - sinh vien | `classId`, `studentId`, `joinedAt`, `status` | compound `classId + studentId`, `classId`, `studentId` |
 | `subjects` | Mon thi | `subjectCode`, `name`, `description`, `status` | `subjectCode` unique |
 | `teaching_assignments` | Quan he lop - mon - giang vien | `classId`, `subjectId`, `teacherId`, `semester`, `schoolYear`, `status` | compound unique `classId + subjectId + teacherId`, `classId`, `subjectId`, `teacherId` |
 | `question_banks` | Ngan hang cau hoi | `name`, `description`, `subjectId`, `teacherId`, `status` | `subjectId`, `teacherId` |

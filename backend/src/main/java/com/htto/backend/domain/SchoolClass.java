@@ -10,7 +10,7 @@ public class SchoolClass extends AuditableDocument {
     @Indexed(unique = true)
     private String classCode;
 
-    private String name;
+    private String className;
 
     private int studentCount;
 
@@ -27,12 +27,12 @@ public class SchoolClass extends AuditableDocument {
         this.classCode = classCode;
     }
 
-    public String getName() {
-        return name;
+    public String getClassName() {
+        return className;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setClassName(String className) {
+        this.className = className;
     }
 
     public int getStudentCount() {

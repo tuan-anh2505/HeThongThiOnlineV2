@@ -249,7 +249,7 @@ public class DatabaseSeeder implements ApplicationRunner {
                 .orElseGet(() -> {
                     SchoolClass schoolClass = new SchoolClass();
                     schoolClass.setClassCode(CLASS_CODE);
-                    schoolClass.setName("Seed Class");
+                    schoolClass.setClassName("Seed Class");
                     schoolClass.setTeacherId(teacher.getId());
                     schoolClass.setStudentCount(0);
                     schoolClass.setStatus(ClassStatus.ACTIVE);
@@ -263,8 +263,8 @@ public class DatabaseSeeder implements ApplicationRunner {
                     ClassStudent classStudent = new ClassStudent();
                     classStudent.setClassId(schoolClass.getId());
                     classStudent.setStudentId(student.getId());
-                    classStudent.setAddedAt(Instant.now());
-                    classStudent.setStatus(EnrollmentStatus.STUDYING);
+                    classStudent.setJoinedAt(Instant.now());
+                    classStudent.setStatus(EnrollmentStatus.ACTIVE);
                     return classStudentRepository.save(classStudent);
                 });
 

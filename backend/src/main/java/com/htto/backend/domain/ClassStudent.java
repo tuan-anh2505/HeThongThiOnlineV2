@@ -7,7 +7,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "class_students")
-@CompoundIndex(name = "uk_class_student", def = "{'classId': 1, 'studentId': 1}", unique = true)
+@CompoundIndex(name = "idx_class_student", def = "{'classId': 1, 'studentId': 1}")
 public class ClassStudent extends AuditableDocument {
 
     @Indexed
@@ -16,9 +16,9 @@ public class ClassStudent extends AuditableDocument {
     @Indexed
     private String studentId;
 
-    private Instant addedAt;
+    private Instant joinedAt;
 
-    private EnrollmentStatus status = EnrollmentStatus.STUDYING;
+    private EnrollmentStatus status = EnrollmentStatus.ACTIVE;
 
     public String getClassId() {
         return classId;
@@ -36,12 +36,12 @@ public class ClassStudent extends AuditableDocument {
         this.studentId = studentId;
     }
 
-    public Instant getAddedAt() {
-        return addedAt;
+    public Instant getJoinedAt() {
+        return joinedAt;
     }
 
-    public void setAddedAt(Instant addedAt) {
-        this.addedAt = addedAt;
+    public void setJoinedAt(Instant joinedAt) {
+        this.joinedAt = joinedAt;
     }
 
     public EnrollmentStatus getStatus() {

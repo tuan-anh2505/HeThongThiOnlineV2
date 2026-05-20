@@ -23,7 +23,7 @@ public final class DomainEnums {
     }
 
     public enum EnrollmentStatus {
-        STUDYING,
+        ACTIVE,
         REMOVED
     }
 
