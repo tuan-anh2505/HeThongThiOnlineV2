@@ -12,8 +12,8 @@ Tai lieu nay chuan hoa schema MongoDB cho he thong thi online. Cac quan he dung 
 | `admins` | Ho so admin | `adminCode`, `accountId` | `adminCode` unique, `accountId` unique |
 | `classes` | Lop hoc/lop hoc phan | `classCode`, `className`, `studentCount`, `teacherId`, `status` | `classCode` unique, `teacherId` |
 | `class_students` | Quan he lop - sinh vien | `classId`, `studentId`, `joinedAt`, `status` | compound `classId + studentId`, `classId`, `studentId` |
-| `subjects` | Mon thi | `subjectCode`, `name`, `description`, `status` | `subjectCode` unique |
-| `teaching_assignments` | Quan he lop - mon - giang vien | `classId`, `subjectId`, `teacherId`, `semester`, `schoolYear`, `status` | compound unique `classId + subjectId + teacherId`, `classId`, `subjectId`, `teacherId` |
+| `subjects` | Mon thi | `subjectCode`, `subjectName`, `description`, `status` | `subjectCode` unique |
+| `class_subject_teachers` | Quan he lop - mon - giang vien | `classId`, `subjectId`, `teacherId`, `semester`, `schoolYear`, `status` | compound `classId + subjectId + teacherId`, `classId`, `subjectId`, `teacherId`, `status` |
 | `question_banks` | Ngan hang cau hoi | `name`, `description`, `subjectId`, `teacherId`, `status` | `subjectId`, `teacherId` |
 | `questions` | Cau hoi thuoc ngan hang | `questionBankId`, `type`, `content`, `point`, `difficulty`, `topic`, `status`, `answerDefinition` | `questionBankId`, compound `questionBankId + type + difficulty` |
 | `exams` | Bai thi | `title`, `classIds`, `subjectId`, `questionBankId`, `teacherId`, `durationMinutes`, `maxAttempts`, `totalScore`, `settings`, `selectionConfig`, `questionRefs`, `status` | `classIds`, `subjectId`, `questionBankId`, `teacherId` |
@@ -40,7 +40,7 @@ Tai lieu nay chuan hoa schema MongoDB cho he thong thi online. Cac quan he dung 
 
 - Tach `students`, `teachers`, `admins` khoi `accounts` de giu tai khoan dang nhap gon va mo rong thong tin rieng theo vai tro.
 - Tach `class_students` vi sinh vien co the hoc nhieu lop hoc phan.
-- Tach `teaching_assignments` vi lop, mon va giang vien la quan he N-N.
+- Tach `class_subject_teachers` vi lop, mon va giang vien la quan he N-N.
 - Tach `questions` khoi `question_banks` de query, import, random va thong ke cau hoi theo ngan hang.
 - Tach `submission_answers` khoi `submissions` de ho tro luu cau tra loi dinh ky va tranh document phieu bai lam qua lon.
 - Tach `exam_results` de phuc vu cong bo diem va thong ke nhanh, du co the tai tao tu `submissions`.

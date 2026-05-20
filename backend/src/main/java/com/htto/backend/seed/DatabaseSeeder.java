@@ -4,6 +4,7 @@ import com.htto.backend.config.SeedProperties;
 import com.htto.backend.domain.AdminProfile;
 import com.htto.backend.domain.Account;
 import com.htto.backend.domain.ClassStudent;
+import com.htto.backend.domain.ClassSubjectTeacher;
 import com.htto.backend.domain.DomainEnums.AssignmentStatus;
 import com.htto.backend.domain.DomainEnums.ClassStatus;
 import com.htto.backend.domain.DomainEnums.Difficulty;
@@ -22,7 +23,6 @@ import com.htto.backend.domain.SchoolClass;
 import com.htto.backend.domain.StudentProfile;
 import com.htto.backend.domain.Subject;
 import com.htto.backend.domain.TeacherProfile;
-import com.htto.backend.domain.TeachingAssignment;
 import com.htto.backend.repository.AccountRepository;
 import com.htto.backend.domain.embedded.AnswerDefinition;
 import com.htto.backend.domain.embedded.AnswerOption;
@@ -39,7 +39,7 @@ import com.htto.backend.repository.SchoolClassRepository;
 import com.htto.backend.repository.StudentProfileRepository;
 import com.htto.backend.repository.SubjectRepository;
 import com.htto.backend.repository.TeacherProfileRepository;
-import com.htto.backend.repository.TeachingAssignmentRepository;
+import com.htto.backend.repository.ClassSubjectTeacherRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -72,7 +72,7 @@ public class DatabaseSeeder implements ApplicationRunner {
     private final SchoolClassRepository schoolClassRepository;
     private final ClassStudentRepository classStudentRepository;
     private final SubjectRepository subjectRepository;
-    private final TeachingAssignmentRepository teachingAssignmentRepository;
+    private final ClassSubjectTeacherRepository classSubjectTeacherRepository;
     private final QuestionBankRepository questionBankRepository;
     private final QuestionRepository questionRepository;
     private final ExamRepository examRepository;
@@ -88,7 +88,7 @@ public class DatabaseSeeder implements ApplicationRunner {
             SchoolClassRepository schoolClassRepository,
             ClassStudentRepository classStudentRepository,
             SubjectRepository subjectRepository,
-            TeachingAssignmentRepository teachingAssignmentRepository,
+            ClassSubjectTeacherRepository classSubjectTeacherRepository,
             QuestionBankRepository questionBankRepository,
             QuestionRepository questionRepository,
             ExamRepository examRepository,
@@ -103,7 +103,7 @@ public class DatabaseSeeder implements ApplicationRunner {
         this.schoolClassRepository = schoolClassRepository;
         this.classStudentRepository = classStudentRepository;
         this.subjectRepository = subjectRepository;
-        this.teachingAssignmentRepository = teachingAssignmentRepository;
+        this.classSubjectTeacherRepository = classSubjectTeacherRepository;
         this.questionBankRepository = questionBankRepository;
         this.questionRepository = questionRepository;
         this.examRepository = examRepository;
@@ -148,7 +148,7 @@ public class DatabaseSeeder implements ApplicationRunner {
 
         attachStudentToClass(student, schoolClass);
         attachTeacherScope(teacher, subject, schoolClass);
-        createTeachingAssignmentIfMissing(schoolClass, subject, teacher);
+        createClassSubjectTeacherIfMissing(schoolClass, subject, teacher);
 
         QuestionBank questionBank = createQuestionBankIfMissing(subject, teacher);
         Question question = createQuestionIfMissing(questionBank);
@@ -238,7 +238,7 @@ public class DatabaseSeeder implements ApplicationRunner {
                 .orElseGet(() -> {
                     Subject subject = new Subject();
                     subject.setSubjectCode(SUBJECT_CODE);
-                    subject.setName("Programming Basics");
+                    subject.setSubjectName("Programming Basics");
                     subject.setDescription("Seed subject for online exam testing");
                     return subjectRepository.save(subject);
                 });
@@ -298,22 +298,27 @@ public class DatabaseSeeder implements ApplicationRunner {
         }
     }
 
-    private void createTeachingAssignmentIfMissing(
+    private void createClassSubjectTeacherIfMissing(
             SchoolClass schoolClass,
             Subject subject,
             TeacherProfile teacher
     ) {
-        teachingAssignmentRepository
-                .findByClassIdAndSubjectIdAndTeacherId(schoolClass.getId(), subject.getId(), teacher.getId())
+        classSubjectTeacherRepository
+                .findByClassIdAndSubjectIdAndTeacherIdAndStatus(
+                        schoolClass.getId(),
+                        subject.getId(),
+                        teacher.getId(),
+                        AssignmentStatus.ACTIVE
+                )
                 .orElseGet(() -> {
-                    TeachingAssignment assignment = new TeachingAssignment();
+                    ClassSubjectTeacher assignment = new ClassSubjectTeacher();
                     assignment.setClassId(schoolClass.getId());
                     assignment.setSubjectId(subject.getId());
                     assignment.setTeacherId(teacher.getId());
                     assignment.setSemester("Seed Semester");
                     assignment.setSchoolYear("2026");
                     assignment.setStatus(AssignmentStatus.ACTIVE);
-                    return teachingAssignmentRepository.save(assignment);
+                    return classSubjectTeacherRepository.save(assignment);
                 });
     }
 

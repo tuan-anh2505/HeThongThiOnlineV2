@@ -5,9 +5,9 @@ import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document(collection = "teaching_assignments")
-@CompoundIndex(name = "uk_class_subject_teacher", def = "{'classId': 1, 'subjectId': 1, 'teacherId': 1}", unique = true)
-public class TeachingAssignment extends AuditableDocument {
+@Document(collection = "class_subject_teachers")
+@CompoundIndex(name = "idx_class_subject_teacher", def = "{'classId': 1, 'subjectId': 1, 'teacherId': 1}")
+public class ClassSubjectTeacher extends AuditableDocument {
 
     @Indexed
     private String classId;
@@ -22,6 +22,7 @@ public class TeachingAssignment extends AuditableDocument {
 
     private String schoolYear;
 
+    @Indexed
     private AssignmentStatus status = AssignmentStatus.ACTIVE;
 
     public String getClassId() {

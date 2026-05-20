@@ -2,6 +2,8 @@ package com.htto.backend.service;
 
 import com.htto.backend.domain.Account;
 import com.htto.backend.domain.ClassStudent;
+import com.htto.backend.domain.ClassSubjectTeacher;
+import com.htto.backend.domain.DomainEnums.AssignmentStatus;
 import com.htto.backend.domain.DomainEnums.ClassStatus;
 import com.htto.backend.domain.DomainEnums.EnrollmentStatus;
 import com.htto.backend.domain.Role;
@@ -16,6 +18,7 @@ import com.htto.backend.dto.response.ClassResponse;
 import com.htto.backend.dto.response.ClassStudentResponse;
 import com.htto.backend.repository.AccountRepository;
 import com.htto.backend.repository.ClassStudentRepository;
+import com.htto.backend.repository.ClassSubjectTeacherRepository;
 import com.htto.backend.repository.SchoolClassRepository;
 import com.htto.backend.repository.StudentProfileRepository;
 import com.htto.backend.repository.TeacherProfileRepository;
@@ -44,6 +47,7 @@ public class ClassService {
     private final StudentProfileRepository studentProfileRepository;
     private final TeacherProfileRepository teacherProfileRepository;
     private final AccountRepository accountRepository;
+    private final ClassSubjectTeacherRepository classSubjectTeacherRepository;
     private final MongoTemplate mongoTemplate;
 
     public ClassService(
@@ -52,6 +56,7 @@ public class ClassService {
             StudentProfileRepository studentProfileRepository,
             TeacherProfileRepository teacherProfileRepository,
             AccountRepository accountRepository,
+            ClassSubjectTeacherRepository classSubjectTeacherRepository,
             MongoTemplate mongoTemplate
     ) {
         this.schoolClassRepository = schoolClassRepository;
@@ -59,6 +64,7 @@ public class ClassService {
         this.studentProfileRepository = studentProfileRepository;
         this.teacherProfileRepository = teacherProfileRepository;
         this.accountRepository = accountRepository;
+        this.classSubjectTeacherRepository = classSubjectTeacherRepository;
         this.mongoTemplate = mongoTemplate;
     }
 
@@ -233,6 +239,15 @@ public class ClassService {
                 .stream()
                 .filter(schoolClass -> schoolClass.getStatus() == ClassStatus.ACTIVE)
                 .forEach(schoolClass -> classes.put(schoolClass.getId(), schoolClass));
+        List<String> assignedClassIds = classSubjectTeacherRepository
+                .findByTeacherIdAndStatus(teacher.getId(), AssignmentStatus.ACTIVE)
+                .stream()
+                .map(ClassSubjectTeacher::getClassId)
+                .toList();
+        schoolClassRepository.findAllById(assignedClassIds)
+                .stream()
+                .filter(schoolClass -> schoolClass.getStatus() == ClassStatus.ACTIVE)
+                .forEach(schoolClass -> classes.put(schoolClass.getId(), schoolClass));
 
         return classes.values().stream()
                 .map(ClassResponse::from)
@@ -298,7 +313,13 @@ public class ClassService {
         TeacherProfile teacher = getTeacherProfile(account);
         boolean assignedByClass = Objects.equals(schoolClass.getTeacherId(), teacher.getId());
         boolean assignedByProfile = teacher.getClassIds().contains(schoolClass.getId());
-        if (!assignedByClass && !assignedByProfile) {
+        boolean assignedBySubject = !classSubjectTeacherRepository
+                .findByTeacherIdAndStatus(teacher.getId(), AssignmentStatus.ACTIVE)
+                .stream()
+                .filter(assignment -> assignment.getClassId().equals(schoolClass.getId()))
+                .toList()
+                .isEmpty();
+        if (!assignedByClass && !assignedByProfile && !assignedBySubject) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Teacher is not assigned to this class");
         }
     }

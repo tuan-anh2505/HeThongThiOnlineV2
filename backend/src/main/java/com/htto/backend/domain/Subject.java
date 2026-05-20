@@ -10,7 +10,7 @@ public class Subject extends AuditableDocument {
     @Indexed(unique = true)
     private String subjectCode;
 
-    private String name;
+    private String subjectName;
 
     private String description;
 
@@ -24,12 +24,12 @@ public class Subject extends AuditableDocument {
         this.subjectCode = subjectCode;
     }
 
-    public String getName() {
-        return name;
+    public String getSubjectName() {
+        return subjectName;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setSubjectName(String subjectName) {
+        this.subjectName = subjectName;
     }
 
     public String getDescription() {
