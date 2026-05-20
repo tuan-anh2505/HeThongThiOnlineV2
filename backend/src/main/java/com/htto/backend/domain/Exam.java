@@ -1,6 +1,7 @@
 package com.htto.backend.domain;
 
 import com.htto.backend.domain.DomainEnums.ExamStatus;
+import com.htto.backend.domain.DomainEnums.ResultPublishStatus;
 import com.htto.backend.domain.embedded.ExamQuestionRef;
 import com.htto.backend.domain.embedded.ExamSettings;
 import com.htto.backend.domain.embedded.QuestionSelectionConfig;
@@ -40,6 +41,8 @@ public class Exam extends AuditableDocument {
     private QuestionSelectionConfig selectionConfig = new QuestionSelectionConfig();
 
     private List<ExamQuestionRef> questionRefs = new ArrayList<>();
+
+    private ResultPublishStatus resultStatus = ResultPublishStatus.NOT_PUBLISHED;
 
     private ExamStatus status = ExamStatus.DRAFT;
 
@@ -129,6 +132,14 @@ public class Exam extends AuditableDocument {
 
     public void setQuestionRefs(List<ExamQuestionRef> questionRefs) {
         this.questionRefs = questionRefs;
+    }
+
+    public ResultPublishStatus getResultStatus() {
+        return resultStatus;
+    }
+
+    public void setResultStatus(ResultPublishStatus resultStatus) {
+        this.resultStatus = resultStatus;
     }
 
     public ExamStatus getStatus() {

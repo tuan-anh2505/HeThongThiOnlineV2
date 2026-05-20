@@ -95,6 +95,7 @@ public final class DomainEnums {
     }
 
     public enum ResultPublishStatus {
+        NOT_PUBLISHED,
         UNPUBLISHED,
         PUBLISHED
     }
