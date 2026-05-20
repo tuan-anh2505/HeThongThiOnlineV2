@@ -99,19 +99,34 @@ public class QuestionService {
         QuestionBank questionBank = getActiveQuestionBankOrThrow(questionBankId);
         ensureCanAccessBank(getCurrentAccount(username), questionBank);
 
-        AnswerDefinition answerDefinition = buildAndValidateAnswer(request.type(), request.answer());
+        return QuestionResponse.from(questionRepository.save(buildQuestion(questionBank.getId(), request)));
+    }
 
-        Question question = new Question();
-        question.setQuestionBankId(questionBank.getId());
-        question.setType(request.type());
-        question.setContent(request.content().trim());
-        question.setScore(request.score());
-        question.setDifficulty(request.difficulty());
-        question.setTopic(trimToNull(request.topic()));
-        question.setStatus(request.status() == null ? QuestionStatus.ACTIVE : request.status());
-        question.setAnswerDefinition(answerDefinition);
+    public void validateQuestionBankImportAccess(String questionBankId, String username) {
+        QuestionBank questionBank = getActiveQuestionBankOrThrow(questionBankId);
+        ensureCanAccessBank(getCurrentAccount(username), questionBank);
+    }
 
-        return QuestionResponse.from(questionRepository.save(question));
+    public void validateQuestionCreateRequest(QuestionCreateRequest request) {
+        buildQuestion("validation", request);
+    }
+
+    public List<QuestionResponse> importQuestions(
+            String questionBankId,
+            List<QuestionCreateRequest> requests,
+            String username
+    ) {
+        QuestionBank questionBank = getActiveQuestionBankOrThrow(questionBankId);
+        ensureCanAccessBank(getCurrentAccount(username), questionBank);
+
+        List<Question> questions = requests.stream()
+                .map(request -> buildQuestion(questionBank.getId(), request))
+                .toList();
+
+        return questionRepository.saveAll(questions)
+                .stream()
+                .map(QuestionResponse::from)
+                .toList();
     }
 
     public QuestionResponse getQuestion(String id, String username) {
@@ -161,6 +176,37 @@ public class QuestionService {
         ensureCanAccessBank(getCurrentAccount(username), questionBank);
         question.setStatus(QuestionStatus.INACTIVE);
         questionRepository.save(question);
+    }
+
+    private Question buildQuestion(String questionBankId, QuestionCreateRequest request) {
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Question payload is required");
+        }
+        if (request.type() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Question type is required");
+        }
+        if (!StringUtils.hasText(request.content())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Question content is required");
+        }
+        if (request.score() == null || request.score().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Question score must be greater than 0");
+        }
+        if (request.difficulty() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Question difficulty is required");
+        }
+
+        AnswerDefinition answerDefinition = buildAndValidateAnswer(request.type(), request.answer());
+
+        Question question = new Question();
+        question.setQuestionBankId(questionBankId);
+        question.setType(request.type());
+        question.setContent(request.content().trim());
+        question.setScore(request.score());
+        question.setDifficulty(request.difficulty());
+        question.setTopic(trimToNull(request.topic()));
+        question.setStatus(request.status() == null ? QuestionStatus.ACTIVE : request.status());
+        question.setAnswerDefinition(answerDefinition);
+        return question;
     }
 
     private AnswerDefinition buildAndValidateAnswer(QuestionType type, AnswerDefinitionRequest request) {
