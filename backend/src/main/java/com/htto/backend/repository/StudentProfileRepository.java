@@ -8,5 +8,5 @@ public interface StudentProfileRepository extends MongoRepository<StudentProfile
 
     Optional<StudentProfile> findByStudentCode(String studentCode);
 
-    Optional<StudentProfile> findByUserId(String userId);
+    Optional<StudentProfile> findByAccountId(String accountId);
 }

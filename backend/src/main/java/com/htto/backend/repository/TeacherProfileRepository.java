@@ -8,5 +8,5 @@ public interface TeacherProfileRepository extends MongoRepository<TeacherProfile
 
     Optional<TeacherProfile> findByTeacherCode(String teacherCode);
 
-    Optional<TeacherProfile> findByUserId(String userId);
+    Optional<TeacherProfile> findByAccountId(String accountId);
 }

@@ -8,5 +8,5 @@ public interface AdminProfileRepository extends MongoRepository<AdminProfile, St
 
     Optional<AdminProfile> findByAdminCode(String adminCode);
 
-    Optional<AdminProfile> findByUserId(String userId);
+    Optional<AdminProfile> findByAccountId(String accountId);
 }

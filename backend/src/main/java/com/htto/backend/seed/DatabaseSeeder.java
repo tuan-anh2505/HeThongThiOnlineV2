@@ -201,34 +201,34 @@ public class DatabaseSeeder implements ApplicationRunner {
     }
 
     private AdminProfile createAdminProfileIfMissing(Account account) {
-        return adminProfileRepository.findByUserId(account.getId())
+        return adminProfileRepository.findByAccountId(account.getId())
                 .or(() -> adminProfileRepository.findByAdminCode(ADMIN_CODE))
                 .orElseGet(() -> {
                     AdminProfile profile = new AdminProfile();
                     profile.setAdminCode(ADMIN_CODE);
-                    profile.setUserId(account.getId());
+                    profile.setAccountId(account.getId());
                     return adminProfileRepository.save(profile);
                 });
     }
 
     private TeacherProfile createTeacherProfileIfMissing(Account account) {
-        return teacherProfileRepository.findByUserId(account.getId())
+        return teacherProfileRepository.findByAccountId(account.getId())
                 .or(() -> teacherProfileRepository.findByTeacherCode(TEACHER_CODE))
                 .orElseGet(() -> {
                     TeacherProfile profile = new TeacherProfile();
                     profile.setTeacherCode(TEACHER_CODE);
-                    profile.setUserId(account.getId());
+                    profile.setAccountId(account.getId());
                     return teacherProfileRepository.save(profile);
                 });
     }
 
     private StudentProfile createStudentProfileIfMissing(Account account) {
-        return studentProfileRepository.findByUserId(account.getId())
+        return studentProfileRepository.findByAccountId(account.getId())
                 .or(() -> studentProfileRepository.findByStudentCode(STUDENT_CODE))
                 .orElseGet(() -> {
                     StudentProfile profile = new StudentProfile();
                     profile.setStudentCode(STUDENT_CODE);
-                    profile.setUserId(account.getId());
+                    profile.setAccountId(account.getId());
                     return studentProfileRepository.save(profile);
                 });
     }
@@ -268,8 +268,8 @@ public class DatabaseSeeder implements ApplicationRunner {
                     return classStudentRepository.save(classStudent);
                 });
 
-        if (!schoolClass.getId().equals(student.getPrimaryClassId())) {
-            student.setPrimaryClassId(schoolClass.getId());
+        if (!schoolClass.getId().equals(student.getMainClassId())) {
+            student.setMainClassId(schoolClass.getId());
         }
         if (!student.getClassIds().contains(schoolClass.getId())) {
             student.getClassIds().add(schoolClass.getId());

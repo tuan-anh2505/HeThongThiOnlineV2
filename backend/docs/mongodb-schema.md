@@ -7,9 +7,9 @@ Tai lieu nay chuan hoa schema MongoDB cho he thong thi online. Cac quan he dung 
 | Collection | Muc dich | Field chinh | Index chinh |
 | --- | --- | --- | --- |
 | `accounts` | Tai khoan dang nhap va phan quyen | `username`, `email`, `password`, `fullName`, `dateOfBirth`, `phone`, `role`, `status`, `createdAt`, `updatedAt` | `username` unique, `email` unique, `role`, `status` |
-| `students` | Ho so sinh vien | `studentCode`, `userId`, `primaryClassId`, `classIds`, `status` | `studentCode` unique, `userId` unique, `primaryClassId`, `classIds` |
-| `teachers` | Ho so giang vien | `teacherCode`, `userId`, `classIds`, `subjectIds` | `teacherCode` unique, `userId` unique, `classIds`, `subjectIds` |
-| `admins` | Ho so admin | `adminCode`, `userId` | `adminCode` unique, `userId` unique |
+| `students` | Ho so sinh vien | `studentCode`, `accountId`, `mainClassId`, `classIds`, `status` | `studentCode` unique, `accountId` unique, `mainClassId`, `classIds` |
+| `teachers` | Ho so giang vien | `teacherCode`, `accountId`, `status`, `classIds`, `subjectIds` | `teacherCode` unique, `accountId` unique, `classIds`, `subjectIds` |
+| `admins` | Ho so admin | `adminCode`, `accountId` | `adminCode` unique, `accountId` unique |
 | `classes` | Lop hoc/lop hoc phan | `classCode`, `name`, `studentCount`, `teacherId`, `status` | `classCode` unique, `teacherId` |
 | `class_students` | Quan he lop - sinh vien | `classId`, `studentId`, `addedAt`, `status` | compound unique `classId + studentId`, `classId`, `studentId` |
 | `subjects` | Mon thi | `subjectCode`, `name`, `description`, `status` | `subjectCode` unique |

@@ -2,6 +2,7 @@ package com.htto.backend.dto.request;
 
 import com.htto.backend.domain.AccountStatus;
 import com.htto.backend.domain.Role;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -16,6 +17,9 @@ public record AccountCreateRequest(
         @NotBlank @Email String email,
         String phone,
         @NotNull Role role,
-        AccountStatus status
+        AccountStatus status,
+        @Valid StudentProfileCreateRequest studentProfile,
+        @Valid TeacherProfileCreateRequest teacherProfile,
+        @Valid AdminProfileCreateRequest adminProfile
 ) {
 }

@@ -13,10 +13,10 @@ public class StudentProfile extends AuditableDocument {
     private String studentCode;
 
     @Indexed(unique = true)
-    private String userId;
+    private String accountId;
 
     @Indexed
-    private String primaryClassId;
+    private String mainClassId;
 
     @Indexed
     private List<String> classIds = new ArrayList<>();
@@ -31,20 +31,20 @@ public class StudentProfile extends AuditableDocument {
         this.studentCode = studentCode;
     }
 
-    public String getUserId() {
-        return userId;
+    public String getAccountId() {
+        return accountId;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public void setAccountId(String accountId) {
+        this.accountId = accountId;
     }
 
-    public String getPrimaryClassId() {
-        return primaryClassId;
+    public String getMainClassId() {
+        return mainClassId;
     }
 
-    public void setPrimaryClassId(String primaryClassId) {
-        this.primaryClassId = primaryClassId;
+    public void setMainClassId(String mainClassId) {
+        this.mainClassId = mainClassId;
     }
 
     public List<String> getClassIds() {

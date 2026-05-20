@@ -10,7 +10,7 @@ public class AdminProfile extends AuditableDocument {
     private String adminCode;
 
     @Indexed(unique = true)
-    private String userId;
+    private String accountId;
 
     public String getAdminCode() {
         return adminCode;
@@ -20,11 +20,11 @@ public class AdminProfile extends AuditableDocument {
         this.adminCode = adminCode;
     }
 
-    public String getUserId() {
-        return userId;
+    public String getAccountId() {
+        return accountId;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public void setAccountId(String accountId) {
+        this.accountId = accountId;
     }
 }

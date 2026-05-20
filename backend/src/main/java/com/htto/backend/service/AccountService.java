@@ -26,19 +26,23 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final MongoTemplate mongoTemplate;
     private final PasswordEncoder passwordEncoder;
+    private final ProfileService profileService;
 
     public AccountService(
             AccountRepository accountRepository,
             MongoTemplate mongoTemplate,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            ProfileService profileService) {
         this.accountRepository = accountRepository;
         this.mongoTemplate = mongoTemplate;
         this.passwordEncoder = passwordEncoder;
+        this.profileService = profileService;
     }
 
     public AccountResponse create(AccountCreateRequest request) {
         ensureUsernameAvailable(request.username(), null);
         ensureEmailAvailable(request.email(), null);
+        profileService.validateProfilePayload(request);
 
         Account account = new Account();
         account.setUsername(request.username().trim());
@@ -50,7 +54,9 @@ public class AccountService {
         account.setRole(request.role());
         account.setStatus(request.status() == null ? AccountStatus.ACTIVE : request.status());
 
-        return AccountResponse.from(accountRepository.save(account));
+        Account savedAccount = accountRepository.save(account);
+        profileService.createProfileForAccount(savedAccount, request);
+        return AccountResponse.from(savedAccount);
     }
 
     public AccountResponse update(String id, AccountUpdateRequest request) {

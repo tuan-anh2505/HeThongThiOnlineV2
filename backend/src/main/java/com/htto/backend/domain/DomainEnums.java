@@ -12,6 +12,11 @@ public final class DomainEnums {
         SUSPENDED
     }
 
+    public enum ProfileStatus {
+        ACTIVE,
+        INACTIVE
+    }
+
     public enum ClassStatus {
         ACTIVE,
         INACTIVE

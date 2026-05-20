@@ -1,5 +1,6 @@
 package com.htto.backend.domain;
 
+import com.htto.backend.domain.DomainEnums.ProfileStatus;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -12,13 +13,15 @@ public class TeacherProfile extends AuditableDocument {
     private String teacherCode;
 
     @Indexed(unique = true)
-    private String userId;
+    private String accountId;
 
     @Indexed
     private List<String> classIds = new ArrayList<>();
 
     @Indexed
     private List<String> subjectIds = new ArrayList<>();
+
+    private ProfileStatus status = ProfileStatus.ACTIVE;
 
     public String getTeacherCode() {
         return teacherCode;
@@ -28,12 +31,12 @@ public class TeacherProfile extends AuditableDocument {
         this.teacherCode = teacherCode;
     }
 
-    public String getUserId() {
-        return userId;
+    public String getAccountId() {
+        return accountId;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public void setAccountId(String accountId) {
+        this.accountId = accountId;
     }
 
     public List<String> getClassIds() {
@@ -50,5 +53,13 @@ public class TeacherProfile extends AuditableDocument {
 
     public void setSubjectIds(List<String> subjectIds) {
         this.subjectIds = subjectIds;
+    }
+
+    public ProfileStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(ProfileStatus status) {
+        this.status = status;
     }
 }
