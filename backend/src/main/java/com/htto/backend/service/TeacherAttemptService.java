@@ -51,6 +51,7 @@ public class TeacherAttemptService {
     private final SubjectRepository subjectRepository;
     private final ExamAttemptSubmitService examAttemptSubmitService;
     private final SystemLogService systemLogService;
+    private final NotificationService notificationService;
 
     public TeacherAttemptService(
             AccountRepository accountRepository,
@@ -62,7 +63,8 @@ public class TeacherAttemptService {
             ClassSubjectTeacherRepository assignmentRepository,
             SubjectRepository subjectRepository,
             ExamAttemptSubmitService examAttemptSubmitService,
-            SystemLogService systemLogService
+            SystemLogService systemLogService,
+            NotificationService notificationService
     ) {
         this.accountRepository = accountRepository;
         this.teacherProfileRepository = teacherProfileRepository;
@@ -74,6 +76,7 @@ public class TeacherAttemptService {
         this.subjectRepository = subjectRepository;
         this.examAttemptSubmitService = examAttemptSubmitService;
         this.systemLogService = systemLogService;
+        this.notificationService = notificationService;
     }
 
     public List<TeacherAttemptSummaryResponse> getExamAttempts(String examId, String username) {
@@ -140,6 +143,7 @@ public class TeacherAttemptService {
         exam.setResultStatus(ResultPublishStatus.PUBLISHED);
         Exam saved = examRepository.save(exam);
         systemLogService.log(scope.account().getId(), "PUBLISH_RESULTS", "EXAM", saved.getId(), "Published exam results");
+        notificationService.notifyExamResultsPublished(saved);
         return new ExamResultStatusResponse(saved.getId(), saved.getResultStatus());
     }
 

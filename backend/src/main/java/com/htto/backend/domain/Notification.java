@@ -27,6 +27,14 @@ public class Notification extends AuditableDocument {
 
     private NotificationStatus status = NotificationStatus.UNREAD;
 
+    public String getNotificationId() {
+        return getId();
+    }
+
+    public void setNotificationId(String notificationId) {
+        setId(notificationId);
+    }
+
     public String getTitle() {
         return title;
     }
@@ -51,12 +59,28 @@ public class Notification extends AuditableDocument {
         this.recipientUserId = recipientUserId;
     }
 
+    public String getReceiverId() {
+        return recipientUserId;
+    }
+
+    public void setReceiverId(String receiverId) {
+        this.recipientUserId = receiverId;
+    }
+
     public Role getRecipientRole() {
         return recipientRole;
     }
 
     public void setRecipientRole(Role recipientRole) {
         this.recipientRole = recipientRole;
+    }
+
+    public Role getReceiverRole() {
+        return recipientRole;
+    }
+
+    public void setReceiverRole(Role receiverRole) {
+        this.recipientRole = receiverRole;
     }
 
     public String getRecipientGroupId() {
@@ -81,5 +105,13 @@ public class Notification extends AuditableDocument {
 
     public void setStatus(NotificationStatus status) {
         this.status = status;
+    }
+
+    public boolean isRead() {
+        return status == NotificationStatus.READ;
+    }
+
+    public void setRead(boolean read) {
+        this.status = read ? NotificationStatus.READ : NotificationStatus.UNREAD;
     }
 }

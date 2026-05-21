@@ -28,18 +28,21 @@ public class AccountService {
     private final PasswordEncoder passwordEncoder;
     private final ProfileService profileService;
     private final SystemLogService systemLogService;
+    private final NotificationService notificationService;
 
     public AccountService(
             AccountRepository accountRepository,
             MongoTemplate mongoTemplate,
             PasswordEncoder passwordEncoder,
             ProfileService profileService,
-            SystemLogService systemLogService) {
+            SystemLogService systemLogService,
+            NotificationService notificationService) {
         this.accountRepository = accountRepository;
         this.mongoTemplate = mongoTemplate;
         this.passwordEncoder = passwordEncoder;
         this.profileService = profileService;
         this.systemLogService = systemLogService;
+        this.notificationService = notificationService;
     }
 
     public AccountResponse create(AccountCreateRequest request) {
@@ -103,6 +106,7 @@ public class AccountService {
         account.setStatus(AccountStatus.LOCKED);
         Account saved = accountRepository.save(account);
         systemLogService.logCurrentUser("LOCK_ACCOUNT", "ACCOUNT", saved.getId(), "Locked account");
+        notificationService.notifyAccountLocked(saved);
         return AccountResponse.from(saved);
     }
 
@@ -111,6 +115,7 @@ public class AccountService {
         account.setStatus(AccountStatus.ACTIVE);
         Account saved = accountRepository.save(account);
         systemLogService.logCurrentUser("UNLOCK_ACCOUNT", "ACCOUNT", saved.getId(), "Unlocked account");
+        notificationService.notifyAccountUnlocked(saved);
         return AccountResponse.from(saved);
     }
 

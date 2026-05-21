@@ -87,6 +87,7 @@ public class ExamService {
     private final PasswordEncoder passwordEncoder;
     private final MongoTemplate mongoTemplate;
     private final SystemLogService systemLogService;
+    private final NotificationService notificationService;
 
     public ExamService(
             ExamRepository examRepository,
@@ -102,7 +103,8 @@ public class ExamService {
             SystemLogRepository systemLogRepository,
             PasswordEncoder passwordEncoder,
             MongoTemplate mongoTemplate,
-            SystemLogService systemLogService
+            SystemLogService systemLogService,
+            NotificationService notificationService
     ) {
         this.examRepository = examRepository;
         this.examQuestionRepository = examQuestionRepository;
@@ -118,6 +120,7 @@ public class ExamService {
         this.passwordEncoder = passwordEncoder;
         this.mongoTemplate = mongoTemplate;
         this.systemLogService = systemLogService;
+        this.notificationService = notificationService;
     }
 
     public List<ExamResponse> searchExams(
@@ -428,6 +431,7 @@ public class ExamService {
         exam.setStatus(ExamStatus.PUBLISHED);
         Exam saved = syncExamQuestions(exam);
         systemLogService.logCurrentUser("PUBLISH_EXAM", "EXAM", saved.getId(), "Published exam");
+        notificationService.notifyExamPublished(saved);
         return toResponse(saved);
     }
 
