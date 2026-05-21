@@ -96,6 +96,7 @@ public final class DomainEnums {
 
     public enum AttemptAnswerStatus {
         NOT_GRADED,
+        NOT_ANSWERED,
         CORRECT,
         WRONG
     }

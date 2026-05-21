@@ -2,7 +2,9 @@ package com.htto.backend.controller;
 
 import com.htto.backend.dto.request.AttemptAnswerSaveRequest;
 import com.htto.backend.dto.response.AttemptAnswerSaveResponse;
+import com.htto.backend.dto.response.SubmitAttemptResponse;
 import com.htto.backend.service.AttemptAnswerService;
+import com.htto.backend.service.ExamAttemptSubmitService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,9 +20,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class StudentAttemptAnswerController {
 
     private final AttemptAnswerService attemptAnswerService;
+    private final ExamAttemptSubmitService examAttemptSubmitService;
 
-    public StudentAttemptAnswerController(AttemptAnswerService attemptAnswerService) {
+    public StudentAttemptAnswerController(
+            AttemptAnswerService attemptAnswerService,
+            ExamAttemptSubmitService examAttemptSubmitService
+    ) {
         this.attemptAnswerService = attemptAnswerService;
+        this.examAttemptSubmitService = examAttemptSubmitService;
     }
 
     @PostMapping("/{attemptId}/answers")
@@ -40,5 +47,13 @@ public class StudentAttemptAnswerController {
             Authentication authentication
     ) {
         return attemptAnswerService.saveAnswer(attemptId, questionId, request, authentication.getName());
+    }
+
+    @PostMapping("/{attemptId}/submit")
+    public SubmitAttemptResponse submitAttempt(
+            @PathVariable String attemptId,
+            Authentication authentication
+    ) {
+        return examAttemptSubmitService.submitAttempt(attemptId, authentication.getName());
     }
 }
