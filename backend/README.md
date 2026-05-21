@@ -76,3 +76,39 @@ Gia tri enum:
 - `TYPE`: `TRUE_FALSE`, `MULTIPLE_CHOICE`, `FILL_BLANK`, `MATCHING`
 - `DIFFICULTY`: `EASY`, `MEDIUM`, `HARD`
 - `STATUS`: `ACTIVE`, `INACTIVE` (khong bat buoc, mac dinh `ACTIVE`)
+
+## Import cau hoi tu URL
+
+Endpoint:
+
+```http
+POST /api/question-banks/{bankId}/import-from-url
+Content-Type: application/json
+Authorization: Bearer <jwt>
+```
+
+Body:
+
+```json
+{
+  "url": "https://example.com/questions.txt",
+  "sourceType": "AUTO"
+}
+```
+
+`sourceType`: `AUTO`, `TXT`, `DOCX`, `PDF`, `HTML`.
+
+Trang thai ho tro:
+
+- `TXT`: ho tro on dinh, dung cung format voi import file TXT.
+- `HTML`: ho tro lay text co ban tu HTML, khong chay JavaScript, sau do parse theo format `[QUESTION]`.
+- `DOCX`, `PDF`: da nhan dien theo source type/content type/duoi file nhung chua parse noi dung trong giai doan nay.
+
+Gioi han bao mat:
+
+- Chi cho phep `http` va `https`.
+- Chan `file://`, `ftp://`, `localhost`, loopback va private IP neu host resolve ve cac dia chi nay.
+- Timeout request 10 giay.
+- Gioi han noi dung tai ve toi da 5MB.
+- Khong import mot phan neu file/link co loi format.
+- Moi lan import tu URL duoc ghi vao `question_import_histories` va `system_logs` voi action `IMPORT_QUESTIONS_FROM_URL`.

@@ -3,10 +3,13 @@ package com.htto.backend.controller;
 import com.htto.backend.domain.DomainEnums.Difficulty;
 import com.htto.backend.domain.DomainEnums.QuestionStatus;
 import com.htto.backend.domain.DomainEnums.QuestionType;
+import com.htto.backend.dto.request.ImportQuestionsFromUrlRequest;
 import com.htto.backend.dto.request.QuestionCreateRequest;
 import com.htto.backend.dto.request.QuestionUpdateRequest;
+import com.htto.backend.dto.response.ImportQuestionsResultResponse;
 import com.htto.backend.dto.response.QuestionImportResponse;
 import com.htto.backend.dto.response.QuestionResponse;
+import com.htto.backend.service.QuestionImportFromUrlService;
 import com.htto.backend.service.QuestionImportService;
 import com.htto.backend.service.QuestionService;
 import jakarta.validation.Valid;
@@ -35,10 +38,16 @@ public class QuestionController {
 
     private final QuestionService questionService;
     private final QuestionImportService questionImportService;
+    private final QuestionImportFromUrlService questionImportFromUrlService;
 
-    public QuestionController(QuestionService questionService, QuestionImportService questionImportService) {
+    public QuestionController(
+            QuestionService questionService,
+            QuestionImportService questionImportService,
+            QuestionImportFromUrlService questionImportFromUrlService
+    ) {
         this.questionService = questionService;
         this.questionImportService = questionImportService;
+        this.questionImportFromUrlService = questionImportFromUrlService;
     }
 
     @GetMapping("/question-banks/{bankId}/questions")
@@ -79,6 +88,22 @@ public class QuestionController {
             Authentication authentication
     ) {
         QuestionImportResponse response = questionImportService.importTxt(bankId, file, authentication.getName());
+        return ResponseEntity
+                .status(response.success() ? HttpStatus.OK : HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
+    @PostMapping("/question-banks/{bankId}/import-from-url")
+    public ResponseEntity<ImportQuestionsResultResponse> importQuestionsFromUrl(
+            @PathVariable String bankId,
+            @Valid @RequestBody ImportQuestionsFromUrlRequest request,
+            Authentication authentication
+    ) {
+        ImportQuestionsResultResponse response = questionImportFromUrlService.importFromUrl(
+                bankId,
+                request,
+                authentication.getName()
+        );
         return ResponseEntity
                 .status(response.success() ? HttpStatus.OK : HttpStatus.BAD_REQUEST)
                 .body(response);

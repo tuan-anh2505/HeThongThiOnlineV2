@@ -36,10 +36,22 @@ public class QuestionImportService {
     }
 
     public QuestionImportResponse importTxt(String questionBankId, MultipartFile file, String username) {
-        questionService.validateQuestionBankImportAccess(questionBankId, username);
+        validateImportAccess(questionBankId, username);
         validateFile(file);
 
-        String content = readFile(file);
+        return importParsedText(questionBankId, readFile(file), username);
+    }
+
+    public QuestionImportResponse importTextContent(String questionBankId, String content, String username) {
+        validateImportAccess(questionBankId, username);
+        return importParsedText(questionBankId, content, username);
+    }
+
+    public void validateImportAccess(String questionBankId, String username) {
+        questionService.validateQuestionBankImportAccess(questionBankId, username);
+    }
+
+    private QuestionImportResponse importParsedText(String questionBankId, String content, String username) {
         ParseResult parseResult = parse(content);
         List<QuestionImportErrorResponse> errors = new ArrayList<>(parseResult.errors());
 
@@ -104,7 +116,7 @@ public class QuestionImportService {
         List<QuestionImportErrorResponse> errors = new ArrayList<>();
         RawQuestion current = null;
 
-        String[] lines = content.split("\\R", -1);
+        String[] lines = (content == null ? "" : content).split("\\R", -1);
         for (int i = 0; i < lines.length; i++) {
             int lineNumber = i + 1;
             String line = lines[i].trim();

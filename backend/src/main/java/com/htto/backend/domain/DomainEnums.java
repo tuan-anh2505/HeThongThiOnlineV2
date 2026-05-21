@@ -104,4 +104,12 @@ public final class DomainEnums {
         UNREAD,
         READ
     }
+
+    public enum ImportSourceType {
+        AUTO,
+        TXT,
+        DOCX,
+        PDF,
+        HTML
+    }
 }
