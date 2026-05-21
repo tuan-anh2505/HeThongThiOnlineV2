@@ -14,6 +14,7 @@ public record StudentExamDetailResponse(
         String className,
         int durationMinutes,
         int maxAttempts,
+        boolean hasPassword,
         boolean allowViewScore,
         boolean allowReview,
         boolean allowViewCorrectAnswer,

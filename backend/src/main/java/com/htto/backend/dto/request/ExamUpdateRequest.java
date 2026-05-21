@@ -15,6 +15,8 @@ public record ExamUpdateRequest(
         Boolean allowReview,
         Boolean allowViewCorrectAnswer,
         Boolean shuffleQuestions,
-        Boolean shuffleOptions
+        Boolean shuffleOptions,
+        String examPassword,
+        Boolean removePassword
 ) {
 }

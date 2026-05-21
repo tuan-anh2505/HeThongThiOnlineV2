@@ -42,6 +42,10 @@ public class Exam extends AuditableDocument {
 
     private List<ExamQuestionRef> questionRefs = new ArrayList<>();
 
+    private Boolean hasPassword = false;
+
+    private String examPasswordHash;
+
     private ResultPublishStatus resultStatus = ResultPublishStatus.NOT_PUBLISHED;
 
     private ExamStatus status = ExamStatus.DRAFT;
@@ -132,6 +136,22 @@ public class Exam extends AuditableDocument {
 
     public void setQuestionRefs(List<ExamQuestionRef> questionRefs) {
         this.questionRefs = questionRefs;
+    }
+
+    public Boolean getHasPassword() {
+        return hasPassword;
+    }
+
+    public void setHasPassword(Boolean hasPassword) {
+        this.hasPassword = hasPassword;
+    }
+
+    public String getExamPasswordHash() {
+        return examPasswordHash;
+    }
+
+    public void setExamPasswordHash(String examPasswordHash) {
+        this.examPasswordHash = examPasswordHash;
     }
 
     public ResultPublishStatus getResultStatus() {

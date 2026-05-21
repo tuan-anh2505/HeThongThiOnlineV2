@@ -20,6 +20,7 @@ import com.htto.backend.domain.QuestionBank;
 import com.htto.backend.domain.Role;
 import com.htto.backend.domain.SchoolClass;
 import com.htto.backend.domain.Subject;
+import com.htto.backend.domain.SystemLog;
 import com.htto.backend.domain.TeacherProfile;
 import com.htto.backend.domain.embedded.ExamQuestionRef;
 import com.htto.backend.domain.embedded.ExamSettings;
@@ -46,8 +47,10 @@ import com.htto.backend.repository.QuestionRepository;
 import com.htto.backend.repository.SchoolClassRepository;
 import com.htto.backend.repository.SubjectRepository;
 import com.htto.backend.repository.SubmissionRepository;
+import com.htto.backend.repository.SystemLogRepository;
 import com.htto.backend.repository.TeacherProfileRepository;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -62,6 +65,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
@@ -79,6 +83,8 @@ public class ExamService {
     private final TeacherProfileRepository teacherProfileRepository;
     private final AccountRepository accountRepository;
     private final SubmissionRepository submissionRepository;
+    private final SystemLogRepository systemLogRepository;
+    private final PasswordEncoder passwordEncoder;
     private final MongoTemplate mongoTemplate;
 
     public ExamService(
@@ -92,6 +98,8 @@ public class ExamService {
             TeacherProfileRepository teacherProfileRepository,
             AccountRepository accountRepository,
             SubmissionRepository submissionRepository,
+            SystemLogRepository systemLogRepository,
+            PasswordEncoder passwordEncoder,
             MongoTemplate mongoTemplate
     ) {
         this.examRepository = examRepository;
@@ -104,6 +112,8 @@ public class ExamService {
         this.teacherProfileRepository = teacherProfileRepository;
         this.accountRepository = accountRepository;
         this.submissionRepository = submissionRepository;
+        this.systemLogRepository = systemLogRepository;
+        this.passwordEncoder = passwordEncoder;
         this.mongoTemplate = mongoTemplate;
     }
 
@@ -184,10 +194,15 @@ public class ExamService {
                 request.shuffleOptions()
         ));
         exam.setSelectionConfig(newSelectionConfig(0, BigDecimal.ZERO));
+        applyCreatePassword(exam, request.examPassword());
         exam.setResultStatus(ResultPublishStatus.NOT_PUBLISHED);
         exam.setStatus(ExamStatus.DRAFT);
 
-        return toResponse(examRepository.save(exam));
+        Exam saved = examRepository.save(exam);
+        if (Boolean.TRUE.equals(saved.getHasPassword())) {
+            logExamPasswordAction(account, saved, "CREATE_EXAM_PASSWORD", "Created exam with password");
+        }
+        return toResponse(saved);
     }
 
     public ExamResponse getExam(String id, String username) {
@@ -250,8 +265,15 @@ public class ExamService {
             exam.setMaxAttempts(validatePositive(request.maxAttempts(), "maxAttempts"));
         }
         exam.setSettings(applySettings(exam.getSettings(), request));
+        PasswordChange passwordChange = applyUpdatePassword(exam, request);
 
-        return toResponse(examRepository.save(exam));
+        Exam saved = examRepository.save(exam);
+        if (passwordChange == PasswordChange.UPDATED) {
+            logExamPasswordAction(account, saved, "UPDATE_EXAM_PASSWORD", "Updated exam password");
+        } else if (passwordChange == PasswordChange.REMOVED) {
+            logExamPasswordAction(account, saved, "REMOVE_EXAM_PASSWORD", "Removed exam password");
+        }
+        return toResponse(saved);
     }
 
     public void deleteExam(String id, String username) {
@@ -416,6 +438,44 @@ public class ExamService {
         ensureCanManageExam(getCurrentAccount(username), exam);
         exam.setStatus(ExamStatus.CANCELLED);
         return toResponse(examRepository.save(exam));
+    }
+
+    private void applyCreatePassword(Exam exam, String examPassword) {
+        if (StringUtils.hasText(examPassword)) {
+            exam.setHasPassword(true);
+            exam.setExamPasswordHash(passwordEncoder.encode(examPassword));
+            return;
+        }
+
+        exam.setHasPassword(false);
+        exam.setExamPasswordHash(null);
+    }
+
+    private PasswordChange applyUpdatePassword(Exam exam, ExamUpdateRequest request) {
+        if (StringUtils.hasText(request.examPassword())) {
+            exam.setHasPassword(true);
+            exam.setExamPasswordHash(passwordEncoder.encode(request.examPassword()));
+            return PasswordChange.UPDATED;
+        }
+
+        if (Boolean.TRUE.equals(request.removePassword())) {
+            exam.setHasPassword(false);
+            exam.setExamPasswordHash(null);
+            return PasswordChange.REMOVED;
+        }
+
+        return PasswordChange.NONE;
+    }
+
+    private void logExamPasswordAction(Account account, Exam exam, String action, String detail) {
+        SystemLog log = new SystemLog();
+        log.setUserId(account.getId());
+        log.setAction(action);
+        log.setOccurredAt(Instant.now());
+        log.setTargetType("EXAM");
+        log.setTargetId(exam.getId());
+        log.setDetail(detail + ", examId=" + exam.getId());
+        systemLogRepository.save(log);
     }
 
     private void validateRandomRequest(GenerateRandomQuestionsRequest request) {
@@ -956,5 +1016,11 @@ public class ExamService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " is required");
         }
         return value.trim();
+    }
+
+    private enum PasswordChange {
+        NONE,
+        UPDATED,
+        REMOVED
     }
 }

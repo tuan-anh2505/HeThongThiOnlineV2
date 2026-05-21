@@ -15,6 +15,7 @@ public record ExamCreateRequest(
         Boolean allowReview,
         Boolean allowViewCorrectAnswer,
         Boolean shuffleQuestions,
-        Boolean shuffleOptions
+        Boolean shuffleOptions,
+        String examPassword
 ) {
 }

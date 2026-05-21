@@ -14,6 +14,7 @@ import com.htto.backend.domain.ExamSession;
 import com.htto.backend.domain.Question;
 import com.htto.backend.domain.Role;
 import com.htto.backend.domain.StudentProfile;
+import com.htto.backend.domain.SystemLog;
 import com.htto.backend.domain.embedded.AnswerDefinition;
 import com.htto.backend.domain.embedded.AnswerOption;
 import com.htto.backend.domain.embedded.ExamAttemptFillBlankRuleSnapshot;
@@ -24,6 +25,7 @@ import com.htto.backend.domain.embedded.ExamAttemptOptionSnapshot;
 import com.htto.backend.domain.embedded.ExamAttemptQuestionSnapshot;
 import com.htto.backend.domain.embedded.ExamQuestionRef;
 import com.htto.backend.domain.embedded.MatchingPair;
+import com.htto.backend.dto.request.StartExamRequest;
 import com.htto.backend.dto.response.ExamAttemptResponse;
 import com.htto.backend.repository.AccountRepository;
 import com.htto.backend.repository.ClassStudentRepository;
@@ -33,6 +35,7 @@ import com.htto.backend.repository.ExamRepository;
 import com.htto.backend.repository.ExamSessionRepository;
 import com.htto.backend.repository.QuestionRepository;
 import com.htto.backend.repository.StudentProfileRepository;
+import com.htto.backend.repository.SystemLogRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -46,7 +49,9 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -60,6 +65,8 @@ public class ExamAttemptService {
     private final AccountRepository accountRepository;
     private final StudentProfileRepository studentProfileRepository;
     private final ClassStudentRepository classStudentRepository;
+    private final SystemLogRepository systemLogRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public ExamAttemptService(
             ExamAttemptRepository examAttemptRepository,
@@ -69,7 +76,9 @@ public class ExamAttemptService {
             QuestionRepository questionRepository,
             AccountRepository accountRepository,
             StudentProfileRepository studentProfileRepository,
-            ClassStudentRepository classStudentRepository
+            ClassStudentRepository classStudentRepository,
+            SystemLogRepository systemLogRepository,
+            PasswordEncoder passwordEncoder
     ) {
         this.examAttemptRepository = examAttemptRepository;
         this.examRepository = examRepository;
@@ -79,14 +88,17 @@ public class ExamAttemptService {
         this.accountRepository = accountRepository;
         this.studentProfileRepository = studentProfileRepository;
         this.classStudentRepository = classStudentRepository;
+        this.systemLogRepository = systemLogRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    public ExamAttemptResponse startExam(String examId, String username) {
+    public ExamAttemptResponse startExam(String examId, StartExamRequest request, String username) {
         StudentProfile student = getCurrentStudent(username);
         Exam exam = getExamOrThrow(examId);
         ensureExamCanBeStarted(exam, student);
         ExamSession session = getActiveSessionOrThrow(exam.getId());
         Instant now = Instant.now();
+        verifyExamPassword(exam, request == null ? null : request.examPassword(), student);
 
         List<ExamAttempt> attempts = examAttemptRepository.findByExamIdAndStudentIdOrderByAttemptNumberAsc(
                 exam.getId(),
@@ -142,6 +154,31 @@ public class ExamAttemptService {
         if (!isStudentAssignedToExamClass(student.getId(), exam.getClassIds())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Student cannot access exam from another class");
         }
+    }
+
+    private void verifyExamPassword(Exam exam, String examPassword, StudentProfile student) {
+        if (!Boolean.TRUE.equals(exam.getHasPassword())) {
+            return;
+        }
+        if (!StringUtils.hasText(examPassword)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bài thi yêu cầu mật khẩu");
+        }
+        if (!StringUtils.hasText(exam.getExamPasswordHash())
+                || !passwordEncoder.matches(examPassword, exam.getExamPasswordHash())) {
+            logWrongExamPassword(exam, student);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu bài thi không đúng");
+        }
+    }
+
+    private void logWrongExamPassword(Exam exam, StudentProfile student) {
+        SystemLog log = new SystemLog();
+        log.setUserId(student.getAccountId());
+        log.setAction("WRONG_EXAM_PASSWORD");
+        log.setOccurredAt(Instant.now());
+        log.setTargetType("EXAM");
+        log.setTargetId(exam.getId());
+        log.setDetail("Student entered wrong exam password, examId=" + exam.getId());
+        systemLogRepository.save(log);
     }
 
     private ExamSession getActiveSessionOrThrow(String examId) {

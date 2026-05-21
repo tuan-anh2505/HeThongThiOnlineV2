@@ -10,6 +10,7 @@ public record StudentExamListResponse(
         String subjectName,
         String className,
         int durationMinutes,
+        boolean hasPassword,
         Instant startTime,
         Instant endTime,
         ExamStatus status,
