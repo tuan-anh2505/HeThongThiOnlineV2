@@ -8,6 +8,8 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 public interface ExamAttemptRepository extends MongoRepository<ExamAttempt, String> {
 
+    List<ExamAttempt> findByExamId(String examId);
+
     List<ExamAttempt> findByExamIdAndStudentIdOrderByAttemptNumberAsc(String examId, String studentId);
 
     List<ExamAttempt> findByStudentId(String studentId);
