@@ -28,6 +28,10 @@ public record ExamAttemptResponse(
 ) {
 
     public static ExamAttemptResponse from(ExamAttempt attempt, Exam exam, Instant now) {
+        return from(attempt, exam, now, true);
+    }
+
+    public static ExamAttemptResponse from(ExamAttempt attempt, Exam exam, Instant now, boolean includeScore) {
         long remainingSeconds = attempt.getDeadline() == null
                 ? 0
                 : Math.max(0, Duration.between(now, attempt.getDeadline()).getSeconds());
@@ -41,7 +45,7 @@ public record ExamAttemptResponse(
                 attempt.getSubmittedAt(),
                 attempt.getDeadline(),
                 remainingSeconds,
-                attempt.getTotalScore(),
+                includeScore ? attempt.getTotalScore() : null,
                 attempt.getStatus(),
                 attempt.getAttemptNumber(),
                 exam == null ? 0 : exam.getMaxAttempts(),

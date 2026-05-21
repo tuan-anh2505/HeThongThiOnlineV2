@@ -37,17 +37,20 @@ public class AttemptAnswerService {
     private final ExamAttemptRepository examAttemptRepository;
     private final AccountRepository accountRepository;
     private final StudentProfileRepository studentProfileRepository;
+    private final ExamAttemptSubmitService examAttemptSubmitService;
 
     public AttemptAnswerService(
             AttemptAnswerRepository attemptAnswerRepository,
             ExamAttemptRepository examAttemptRepository,
             AccountRepository accountRepository,
-            StudentProfileRepository studentProfileRepository
+            StudentProfileRepository studentProfileRepository,
+            ExamAttemptSubmitService examAttemptSubmitService
     ) {
         this.attemptAnswerRepository = attemptAnswerRepository;
         this.examAttemptRepository = examAttemptRepository;
         this.accountRepository = accountRepository;
         this.studentProfileRepository = studentProfileRepository;
+        this.examAttemptSubmitService = examAttemptSubmitService;
     }
 
     public AttemptAnswerSaveResponse saveAnswer(
@@ -61,7 +64,7 @@ public class AttemptAnswerService {
         }
         String questionId = resolveQuestionId(questionIdFromPath, request);
         StudentProfile student = getCurrentStudent(username);
-        ExamAttempt attempt = getOwnedInProgressAttempt(attemptId, student.getId());
+        ExamAttempt attempt = getOwnedInProgressAttempt(attemptId, student);
         ExamAttemptQuestionSnapshot snapshot = getQuestionSnapshot(attempt, questionId);
         AttemptAnswerValue answerValue = buildAnswerValue(snapshot, request);
 
@@ -93,24 +96,14 @@ public class AttemptAnswerService {
         return request.questionId();
     }
 
-    private ExamAttempt getOwnedInProgressAttempt(String attemptId, String studentId) {
-        ExamAttempt attempt = examAttemptRepository.findByIdAndStudentId(attemptId, studentId)
+    private ExamAttempt getOwnedInProgressAttempt(String attemptId, StudentProfile student) {
+        ExamAttempt attempt = examAttemptRepository.findByIdAndStudentId(attemptId, student.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exam attempt not found"));
-        refreshExpiredAttempt(attempt);
+        attempt = examAttemptSubmitService.autoSubmitIfExpired(attempt, student.getAccountId());
         if (attempt.getStatus() != ExamAttemptStatus.IN_PROGRESS) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Exam attempt is not in progress");
         }
         return attempt;
-    }
-
-    private void refreshExpiredAttempt(ExamAttempt attempt) {
-        Instant now = Instant.now();
-        if (attempt.getStatus() == ExamAttemptStatus.IN_PROGRESS
-                && attempt.getDeadline() != null
-                && !now.isBefore(attempt.getDeadline())) {
-            attempt.setStatus(ExamAttemptStatus.EXPIRED);
-            examAttemptRepository.save(attempt);
-        }
     }
 
     private ExamAttemptQuestionSnapshot getQuestionSnapshot(ExamAttempt attempt, String questionId) {

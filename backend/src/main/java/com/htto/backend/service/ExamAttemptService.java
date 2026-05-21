@@ -7,6 +7,7 @@ import com.htto.backend.domain.DomainEnums.ExamAttemptStatus;
 import com.htto.backend.domain.DomainEnums.ExamSessionStatus;
 import com.htto.backend.domain.DomainEnums.ExamStatus;
 import com.htto.backend.domain.DomainEnums.QuestionType;
+import com.htto.backend.domain.DomainEnums.ResultPublishStatus;
 import com.htto.backend.domain.Exam;
 import com.htto.backend.domain.ExamAttempt;
 import com.htto.backend.domain.ExamQuestion;
@@ -67,6 +68,7 @@ public class ExamAttemptService {
     private final ClassStudentRepository classStudentRepository;
     private final SystemLogRepository systemLogRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ExamAttemptSubmitService examAttemptSubmitService;
 
     public ExamAttemptService(
             ExamAttemptRepository examAttemptRepository,
@@ -78,7 +80,8 @@ public class ExamAttemptService {
             StudentProfileRepository studentProfileRepository,
             ClassStudentRepository classStudentRepository,
             SystemLogRepository systemLogRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            ExamAttemptSubmitService examAttemptSubmitService
     ) {
         this.examAttemptRepository = examAttemptRepository;
         this.examRepository = examRepository;
@@ -90,6 +93,7 @@ public class ExamAttemptService {
         this.classStudentRepository = classStudentRepository;
         this.systemLogRepository = systemLogRepository;
         this.passwordEncoder = passwordEncoder;
+        this.examAttemptSubmitService = examAttemptSubmitService;
     }
 
     public ExamAttemptResponse startExam(String examId, StartExamRequest request, String username) {
@@ -105,7 +109,7 @@ public class ExamAttemptService {
                 student.getId()
         );
         for (ExamAttempt attempt : attempts) {
-            ExamAttempt refreshed = refreshAttemptStatus(attempt, now);
+            ExamAttempt refreshed = examAttemptSubmitService.autoSubmitIfExpired(attempt, student.getAccountId());
             if (refreshed.getStatus() == ExamAttemptStatus.IN_PROGRESS) {
                 return ExamAttemptResponse.from(refreshed, exam, now);
             }
@@ -142,9 +146,9 @@ public class ExamAttemptService {
         ExamAttempt attempt = examAttemptRepository.findByIdAndStudentId(attemptId, student.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exam attempt not found"));
         Instant now = Instant.now();
-        ExamAttempt refreshed = refreshAttemptStatus(attempt, now);
+        ExamAttempt refreshed = examAttemptSubmitService.autoSubmitIfExpired(attempt, student.getAccountId());
         Exam exam = examRepository.findById(refreshed.getExamId()).orElse(null);
-        return ExamAttemptResponse.from(refreshed, exam, now);
+        return ExamAttemptResponse.from(refreshed, exam, now, canViewScore(exam));
     }
 
     private void ensureExamCanBeStarted(Exam exam, StudentProfile student) {
@@ -179,6 +183,14 @@ public class ExamAttemptService {
         log.setTargetId(exam.getId());
         log.setDetail("Student entered wrong exam password, examId=" + exam.getId());
         systemLogRepository.save(log);
+    }
+
+    private boolean canViewScore(Exam exam) {
+        if (exam == null) {
+            return false;
+        }
+        boolean allowViewScore = exam.getSettings() != null && exam.getSettings().isShowScoreImmediately();
+        return allowViewScore || exam.getResultStatus() == ResultPublishStatus.PUBLISHED;
     }
 
     private ExamSession getActiveSessionOrThrow(String examId) {
@@ -353,16 +365,6 @@ public class ExamAttemptService {
         }
         snapshot.setRightItems(rightItems);
         return snapshot;
-    }
-
-    private ExamAttempt refreshAttemptStatus(ExamAttempt attempt, Instant now) {
-        if (attempt.getStatus() == ExamAttemptStatus.IN_PROGRESS
-                && attempt.getDeadline() != null
-                && !now.isBefore(attempt.getDeadline())) {
-            attempt.setStatus(ExamAttemptStatus.EXPIRED);
-            return examAttemptRepository.save(attempt);
-        }
-        return attempt;
     }
 
     private ExamSession refreshSessionStatus(ExamSession session) {

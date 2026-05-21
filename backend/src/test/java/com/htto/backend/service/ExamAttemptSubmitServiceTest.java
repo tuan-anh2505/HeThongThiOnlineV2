@@ -3,6 +3,7 @@ package com.htto.backend.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.htto.backend.domain.Account;
@@ -15,6 +16,7 @@ import com.htto.backend.domain.ExamAttempt;
 import com.htto.backend.domain.Question;
 import com.htto.backend.domain.Role;
 import com.htto.backend.domain.StudentProfile;
+import com.htto.backend.domain.SystemLog;
 import com.htto.backend.domain.embedded.AnswerDefinition;
 import com.htto.backend.domain.embedded.AnswerOption;
 import com.htto.backend.domain.embedded.AttemptAnswerValue;
@@ -28,7 +30,10 @@ import com.htto.backend.repository.ExamAttemptRepository;
 import com.htto.backend.repository.ExamRepository;
 import com.htto.backend.repository.QuestionRepository;
 import com.htto.backend.repository.StudentProfileRepository;
+import com.htto.backend.repository.SystemLogRepository;
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,6 +72,9 @@ class ExamAttemptSubmitServiceTest {
     @Mock
     private StudentProfileRepository studentProfileRepository;
 
+    @Mock
+    private SystemLogRepository systemLogRepository;
+
     private ExamAttemptSubmitService service;
 
     @BeforeEach
@@ -77,7 +85,8 @@ class ExamAttemptSubmitServiceTest {
                 examRepository,
                 questionRepository,
                 accountRepository,
-                studentProfileRepository
+                studentProfileRepository,
+                systemLogRepository
         );
 
         Account account = new Account();
@@ -143,6 +152,52 @@ class ExamAttemptSubmitServiceTest {
         assertThat(answer.getStatus()).isEqualTo(AttemptAnswerStatus.CORRECT);
         assertThat(answer.getScoreAchieved()).isEqualByComparingTo(BigDecimal.ONE);
         assertThat(answer.getIsCorrect()).isTrue();
+    }
+
+    @Test
+    void autoSubmitsExpiredAttemptAndLogsSystemAction() {
+        ExamAttempt attempt = new ExamAttempt();
+        attempt.setId(ATTEMPT_ID);
+        attempt.setStudentId(STUDENT_ID);
+        attempt.setExamId(EXAM_ID);
+        attempt.setStatus(ExamAttemptStatus.IN_PROGRESS);
+        attempt.setDeadline(Instant.now().minusSeconds(1).truncatedTo(ChronoUnit.MILLIS));
+        attempt.setQuestionSnapshots(List.of(multipleChoiceSnapshot()));
+
+        Exam exam = new Exam();
+        exam.setId(EXAM_ID);
+
+        Question question = new Question();
+        question.setId(QUESTION_ID);
+        question.setType(QuestionType.MULTIPLE_CHOICE);
+        question.setScore(BigDecimal.ONE);
+        AnswerDefinition answerDefinition = new AnswerDefinition();
+        answerDefinition.setOptions(List.of(
+                new AnswerOption(CORRECT_OPTION_ID, "Correct answer", true, 1),
+                new AnswerOption(WRONG_OPTION_ID, "Wrong answer", false, 2)
+        ));
+        question.setAnswerDefinition(answerDefinition);
+
+        AttemptAnswerValue answerValue = new AttemptAnswerValue();
+        answerValue.setSelectedOptionId(CORRECT_OPTION_ID);
+        AttemptAnswer answer = new AttemptAnswer();
+        answer.setAttemptId(ATTEMPT_ID);
+        answer.setExamId(EXAM_ID);
+        answer.setQuestionId(QUESTION_ID);
+        answer.setStudentAnswer(answerValue);
+
+        when(examAttemptRepository.findByIdAndStudentId(ATTEMPT_ID, STUDENT_ID)).thenReturn(Optional.of(attempt));
+        when(examRepository.findById(EXAM_ID)).thenReturn(Optional.of(exam));
+        when(attemptAnswerRepository.findByAttemptId(ATTEMPT_ID)).thenReturn(List.of(answer));
+        when(questionRepository.findAllById(List.of(QUESTION_ID))).thenReturn(List.of(question));
+
+        SubmitAttemptResponse response = service.autoSubmitAttempt(ATTEMPT_ID, USERNAME);
+
+        assertThat(response.status()).isEqualTo(ExamAttemptStatus.EXPIRED);
+        assertThat(attempt.getStatus()).isEqualTo(ExamAttemptStatus.EXPIRED);
+        assertThat(attempt.getSubmittedAt()).isEqualTo(attempt.getDeadline());
+        assertThat(answer.getStatus()).isEqualTo(AttemptAnswerStatus.CORRECT);
+        verify(systemLogRepository).save(any(SystemLog.class));
     }
 
     private ExamAttemptQuestionSnapshot multipleChoiceSnapshot() {

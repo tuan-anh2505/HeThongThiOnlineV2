@@ -10,13 +10,15 @@ import com.htto.backend.domain.ExamAttempt;
 import com.htto.backend.domain.Question;
 import com.htto.backend.domain.Role;
 import com.htto.backend.domain.StudentProfile;
+import com.htto.backend.domain.SystemLog;
 import com.htto.backend.domain.embedded.AnswerDefinition;
 import com.htto.backend.domain.embedded.AnswerOption;
 import com.htto.backend.domain.embedded.AttemptAnswerValue;
 import com.htto.backend.domain.embedded.AttemptMatchingPairAnswer;
+import com.htto.backend.domain.embedded.ExamAttemptQuestionSnapshot;
 import com.htto.backend.domain.embedded.FillBlankAnswer;
 import com.htto.backend.domain.embedded.MatchingPair;
-import com.htto.backend.domain.embedded.ExamAttemptQuestionSnapshot;
+import com.htto.backend.dto.response.ExamAttemptStatusResponse;
 import com.htto.backend.dto.response.SubmitAttemptResponse;
 import com.htto.backend.repository.AccountRepository;
 import com.htto.backend.repository.AttemptAnswerRepository;
@@ -24,6 +26,7 @@ import com.htto.backend.repository.ExamAttemptRepository;
 import com.htto.backend.repository.ExamRepository;
 import com.htto.backend.repository.QuestionRepository;
 import com.htto.backend.repository.StudentProfileRepository;
+import com.htto.backend.repository.SystemLogRepository;
 import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.time.Instant;
@@ -54,6 +57,7 @@ public class ExamAttemptSubmitService {
     private final QuestionRepository questionRepository;
     private final AccountRepository accountRepository;
     private final StudentProfileRepository studentProfileRepository;
+    private final SystemLogRepository systemLogRepository;
 
     public ExamAttemptSubmitService(
             ExamAttemptRepository examAttemptRepository,
@@ -61,7 +65,8 @@ public class ExamAttemptSubmitService {
             ExamRepository examRepository,
             QuestionRepository questionRepository,
             AccountRepository accountRepository,
-            StudentProfileRepository studentProfileRepository
+            StudentProfileRepository studentProfileRepository,
+            SystemLogRepository systemLogRepository
     ) {
         this.examAttemptRepository = examAttemptRepository;
         this.attemptAnswerRepository = attemptAnswerRepository;
@@ -69,19 +74,72 @@ public class ExamAttemptSubmitService {
         this.questionRepository = questionRepository;
         this.accountRepository = accountRepository;
         this.studentProfileRepository = studentProfileRepository;
+        this.systemLogRepository = systemLogRepository;
     }
 
     public SubmitAttemptResponse submitAttempt(String attemptId, String username) {
         StudentProfile student = getCurrentStudent(username);
-        ExamAttempt attempt = examAttemptRepository.findByIdAndStudentId(attemptId, student.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exam attempt not found"));
-        refreshExpiredAttempt(attempt);
+        ExamAttempt attempt = getOwnedAttempt(attemptId, student.getId());
+        Exam exam = getExamOrThrow(attempt.getExamId());
+
+        if (attempt.getStatus() == ExamAttemptStatus.IN_PROGRESS && isExpired(attempt, Instant.now())) {
+            ExamAttempt autoSubmitted = autoSubmitExpiredAttempt(attempt, exam, student.getAccountId());
+            return toSubmitResponse(autoSubmitted, exam);
+        }
         if (attempt.getStatus() != ExamAttemptStatus.IN_PROGRESS) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Exam attempt is not in progress");
         }
 
-        Exam exam = examRepository.findById(attempt.getExamId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exam not found"));
+        return toSubmitResponse(gradeAndCloseAttempt(attempt, exam, ExamAttemptStatus.SUBMITTED), exam);
+    }
+
+    public SubmitAttemptResponse autoSubmitAttempt(String attemptId, String username) {
+        StudentProfile student = getCurrentStudent(username);
+        ExamAttempt attempt = getOwnedAttempt(attemptId, student.getId());
+        Exam exam = getExamOrThrow(attempt.getExamId());
+
+        if (attempt.getStatus() == ExamAttemptStatus.IN_PROGRESS) {
+            if (!isExpired(attempt, Instant.now())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Exam attempt has not expired");
+            }
+            attempt = autoSubmitExpiredAttempt(attempt, exam, student.getAccountId());
+        }
+        return toSubmitResponse(attempt, exam);
+    }
+
+    public ExamAttemptStatusResponse getAttemptStatus(String attemptId, String username) {
+        StudentProfile student = getCurrentStudent(username);
+        ExamAttempt attempt = getOwnedAttempt(attemptId, student.getId());
+        attempt = autoSubmitIfExpired(attempt, student.getAccountId());
+        Exam exam = getExamOrThrow(attempt.getExamId());
+        return ExamAttemptStatusResponse.of(
+                attempt.getId(),
+                attempt.getExamId(),
+                attempt.getStatus(),
+                attempt.getStartedAt(),
+                attempt.getSubmittedAt(),
+                attempt.getDeadline(),
+                Instant.now(),
+                canViewScore(exam),
+                attempt.getTotalScore()
+        );
+    }
+
+    public ExamAttempt autoSubmitIfExpired(ExamAttempt attempt, String userId) {
+        if (attempt == null || attempt.getStatus() != ExamAttemptStatus.IN_PROGRESS || !isExpired(attempt, Instant.now())) {
+            return attempt;
+        }
+        Exam exam = getExamOrThrow(attempt.getExamId());
+        return autoSubmitExpiredAttempt(attempt, exam, userId);
+    }
+
+    private ExamAttempt autoSubmitExpiredAttempt(ExamAttempt attempt, Exam exam, String userId) {
+        ExamAttempt savedAttempt = gradeAndCloseAttempt(attempt, exam, ExamAttemptStatus.EXPIRED);
+        logAutoSubmit(savedAttempt, userId);
+        return savedAttempt;
+    }
+
+    private ExamAttempt gradeAndCloseAttempt(ExamAttempt attempt, Exam exam, ExamAttemptStatus finalStatus) {
         List<ExamAttemptQuestionSnapshot> snapshots = attempt.getQuestionSnapshots() == null
                 ? List.of()
                 : attempt.getQuestionSnapshots()
@@ -121,21 +179,17 @@ public class ExamAttemptSubmitService {
         }
 
         attemptAnswerRepository.saveAll(gradedAnswers);
-        Instant submittedAt = Instant.now().truncatedTo(ChronoUnit.MILLIS);
         attempt.setTotalScore(totalScore);
-        attempt.setSubmittedAt(submittedAt);
-        attempt.setStatus(ExamAttemptStatus.SUBMITTED);
-        ExamAttempt savedAttempt = examAttemptRepository.save(attempt);
+        attempt.setSubmittedAt(resolveSubmittedAt(attempt, finalStatus));
+        attempt.setStatus(finalStatus);
+        return examAttemptRepository.save(attempt);
+    }
 
-        boolean scoreVisible = canViewScore(exam);
-        return new SubmitAttemptResponse(
-                true,
-                savedAttempt.getId(),
-                savedAttempt.getStatus(),
-                savedAttempt.getSubmittedAt(),
-                scoreVisible,
-                scoreVisible ? savedAttempt.getTotalScore() : null
-        );
+    private Instant resolveSubmittedAt(ExamAttempt attempt, ExamAttemptStatus finalStatus) {
+        if (finalStatus == ExamAttemptStatus.EXPIRED && attempt.getDeadline() != null) {
+            return attempt.getDeadline().truncatedTo(ChronoUnit.MILLIS);
+        }
+        return Instant.now().truncatedTo(ChronoUnit.MILLIS);
     }
 
     private GradeResult gradeQuestion(
@@ -145,7 +199,7 @@ public class ExamAttemptSubmitService {
     ) {
         BigDecimal fullScore = resolveQuestionScore(snapshot, question);
         if (question == null || question.getAnswerDefinition() == null || snapshot.getType() == null) {
-            return wrong(fullScore, Map.of());
+            return wrong(Map.of());
         }
         AnswerDefinition answerDefinition = question.getAnswerDefinition();
         return switch (snapshot.getType()) {
@@ -166,7 +220,7 @@ public class ExamAttemptSubmitService {
             return notAnswered(correctSnapshot);
         }
         boolean correct = Objects.equals(answerValue.getTrueFalseAnswer(), answerDefinition.getTrueFalseAnswer());
-        return correct ? correct(fullScore, correctSnapshot) : wrong(fullScore, correctSnapshot);
+        return correct ? correct(fullScore, correctSnapshot) : wrong(correctSnapshot);
     }
 
     private GradeResult gradeMultipleChoice(
@@ -187,7 +241,7 @@ public class ExamAttemptSubmitService {
             return notAnswered(correctSnapshot);
         }
         boolean correct = correctOptionIds.contains(answerValue.getSelectedOptionId());
-        return correct ? correct(fullScore, correctSnapshot) : wrong(fullScore, correctSnapshot);
+        return correct ? correct(fullScore, correctSnapshot) : wrong(correctSnapshot);
     }
 
     private GradeResult gradeFillBlank(
@@ -201,7 +255,7 @@ public class ExamAttemptSubmitService {
             return notAnswered(correctSnapshot);
         }
         if (fillBlank == null || fillBlank.getAcceptedAnswers() == null || fillBlank.getAcceptedAnswers().isEmpty()) {
-            return wrong(fullScore, correctSnapshot);
+            return wrong(correctSnapshot);
         }
 
         String submitted = normalizeFillBlank(answerValue.getFillBlankText(), fillBlank);
@@ -210,7 +264,7 @@ public class ExamAttemptSubmitService {
                 .filter(Objects::nonNull)
                 .map(accepted -> normalizeFillBlank(accepted, fillBlank))
                 .anyMatch(submitted::equals);
-        return correct ? correct(fullScore, correctSnapshot) : wrong(fullScore, correctSnapshot);
+        return correct ? correct(fullScore, correctSnapshot) : wrong(correctSnapshot);
     }
 
     private GradeResult gradeMatching(
@@ -243,14 +297,14 @@ public class ExamAttemptSubmitService {
                 && correctByLeftId.entrySet()
                         .stream()
                         .allMatch(entry -> Objects.equals(entry.getValue(), submittedByLeftId.get(entry.getKey())));
-        return correct ? correct(fullScore, correctSnapshot) : wrong(fullScore, correctSnapshot);
+        return correct ? correct(fullScore, correctSnapshot) : wrong(correctSnapshot);
     }
 
     private GradeResult correct(BigDecimal score, Map<String, Object> correctSnapshot) {
         return new GradeResult(AttemptAnswerStatus.CORRECT, score, correctSnapshot);
     }
 
-    private GradeResult wrong(BigDecimal fullScore, Map<String, Object> correctSnapshot) {
+    private GradeResult wrong(Map<String, Object> correctSnapshot) {
         return new GradeResult(AttemptAnswerStatus.WRONG, BigDecimal.ZERO, correctSnapshot);
     }
 
@@ -313,7 +367,7 @@ public class ExamAttemptSubmitService {
             normalized = normalized.trim();
         }
         if (fillBlank.isIgnoreAccent()) {
-            normalized = normalized.replace('đ', 'd').replace('Đ', 'D');
+            normalized = normalized.replace('\u0111', 'd').replace('\u0110', 'D');
             normalized = DIACRITIC_PATTERN
                     .matcher(Normalizer.normalize(normalized, Normalizer.Form.NFD))
                     .replaceAll("");
@@ -324,19 +378,46 @@ public class ExamAttemptSubmitService {
         return normalized;
     }
 
-    private void refreshExpiredAttempt(ExamAttempt attempt) {
-        Instant now = Instant.now();
-        if (attempt.getStatus() == ExamAttemptStatus.IN_PROGRESS
-                && attempt.getDeadline() != null
-                && !now.isBefore(attempt.getDeadline())) {
-            attempt.setStatus(ExamAttemptStatus.EXPIRED);
-            examAttemptRepository.save(attempt);
-        }
+    private boolean isExpired(ExamAttempt attempt, Instant now) {
+        return attempt.getDeadline() != null && !now.isBefore(attempt.getDeadline());
     }
 
     private boolean canViewScore(Exam exam) {
         boolean allowViewScore = exam.getSettings() != null && exam.getSettings().isShowScoreImmediately();
         return allowViewScore || exam.getResultStatus() == ResultPublishStatus.PUBLISHED;
+    }
+
+    private SubmitAttemptResponse toSubmitResponse(ExamAttempt attempt, Exam exam) {
+        boolean scoreVisible = canViewScore(exam);
+        return new SubmitAttemptResponse(
+                true,
+                attempt.getId(),
+                attempt.getStatus(),
+                attempt.getSubmittedAt(),
+                scoreVisible,
+                scoreVisible ? attempt.getTotalScore() : null
+        );
+    }
+
+    private void logAutoSubmit(ExamAttempt attempt, String userId) {
+        SystemLog log = new SystemLog();
+        log.setUserId(userId);
+        log.setAction("AUTO_SUBMIT_ATTEMPT");
+        log.setOccurredAt(Instant.now());
+        log.setTargetType("EXAM_ATTEMPT");
+        log.setTargetId(attempt.getId());
+        log.setDetail("System auto-submitted expired attempt, examId=" + attempt.getExamId());
+        systemLogRepository.save(log);
+    }
+
+    private ExamAttempt getOwnedAttempt(String attemptId, String studentId) {
+        return examAttemptRepository.findByIdAndStudentId(attemptId, studentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exam attempt not found"));
+    }
+
+    private Exam getExamOrThrow(String examId) {
+        return examRepository.findById(examId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exam not found"));
     }
 
     private StudentProfile getCurrentStudent(String username) {

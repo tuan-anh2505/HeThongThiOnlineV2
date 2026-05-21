@@ -59,6 +59,7 @@ public class StudentExamService {
     private final ExamQuestionRepository examQuestionRepository;
     private final QuestionRepository questionRepository;
     private final MongoTemplate mongoTemplate;
+    private final ExamAttemptSubmitService examAttemptSubmitService;
 
     public StudentExamService(
             AccountRepository accountRepository,
@@ -71,7 +72,8 @@ public class StudentExamService {
             ExamAttemptRepository examAttemptRepository,
             ExamQuestionRepository examQuestionRepository,
             QuestionRepository questionRepository,
-            MongoTemplate mongoTemplate
+            MongoTemplate mongoTemplate,
+            ExamAttemptSubmitService examAttemptSubmitService
     ) {
         this.accountRepository = accountRepository;
         this.studentProfileRepository = studentProfileRepository;
@@ -84,6 +86,7 @@ public class StudentExamService {
         this.examQuestionRepository = examQuestionRepository;
         this.questionRepository = questionRepository;
         this.mongoTemplate = mongoTemplate;
+        this.examAttemptSubmitService = examAttemptSubmitService;
     }
 
     public List<StudentExamListResponse> getStudentExams(String username) {
@@ -114,7 +117,7 @@ public class StudentExamService {
         SchoolClass schoolClass = resolveStudentExamClass(exam, scope);
         Subject subject = subjectRepository.findById(exam.getSubjectId()).orElse(null);
         ExamSession session = resolveDisplaySession(exam);
-        SubmissionSummary submissionSummary = getSubmissionSummary(exam.getId(), scope.student().getId());
+        SubmissionSummary submissionSummary = getSubmissionSummary(exam.getId(), scope.student());
 
         return new StudentExamDetailResponse(
                 exam.getId(),
@@ -149,7 +152,7 @@ public class StudentExamService {
 
         Subject subject = subjectRepository.findById(exam.getSubjectId()).orElse(null);
         ExamSession session = resolveDisplaySession(exam);
-        SubmissionSummary submissionSummary = getSubmissionSummary(exam.getId(), scope.student().getId());
+        SubmissionSummary submissionSummary = getSubmissionSummary(exam.getId(), scope.student());
 
         return new StudentExamListResponse(
                 exam.getId(),
@@ -256,23 +259,18 @@ public class StudentExamService {
         return session;
     }
 
-    private SubmissionSummary getSubmissionSummary(String examId, String studentId) {
+    private SubmissionSummary getSubmissionSummary(String examId, StudentProfile student) {
         List<ExamAttempt> attempts = examAttemptRepository.findByExamIdAndStudentIdOrderByAttemptNumberAsc(
                 examId,
-                studentId
+                student.getId()
         );
         if (attempts.isEmpty()) {
             return new SubmissionSummary("NOT_STARTED", 0);
         }
 
-        Instant now = Instant.now();
         attempts.stream()
                 .filter(attempt -> attempt.getStatus() == ExamAttemptStatus.IN_PROGRESS)
-                .filter(attempt -> attempt.getDeadline() != null && !now.isBefore(attempt.getDeadline()))
-                .forEach(attempt -> {
-                    attempt.setStatus(ExamAttemptStatus.EXPIRED);
-                    examAttemptRepository.save(attempt);
-                });
+                .forEach(attempt -> examAttemptSubmitService.autoSubmitIfExpired(attempt, student.getAccountId()));
 
         ExamAttempt latest = attempts.stream()
                 .max(Comparator.comparingInt(ExamAttempt::getAttemptNumber))

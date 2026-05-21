@@ -81,6 +81,9 @@ class ExamAttemptServicePasswordTest {
     @Mock
     private SystemLogRepository systemLogRepository;
 
+    @Mock
+    private ExamAttemptSubmitService examAttemptSubmitService;
+
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private ExamAttemptService service;
     private Exam exam;
@@ -97,7 +100,8 @@ class ExamAttemptServicePasswordTest {
                 studentProfileRepository,
                 classStudentRepository,
                 systemLogRepository,
-                passwordEncoder
+                passwordEncoder,
+                examAttemptSubmitService
         );
 
         Account account = new Account();
