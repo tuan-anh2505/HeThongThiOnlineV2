@@ -4,6 +4,7 @@ import com.htto.backend.domain.DomainEnums.Difficulty;
 import com.htto.backend.domain.DomainEnums.QuestionType;
 import com.htto.backend.domain.Question;
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 
 public record QuestionStudentResponse(
@@ -69,6 +70,7 @@ public record QuestionStudentResponse(
                             .toList(),
                     pairs.stream()
                             .map(pair -> new MatchingRightItemResponse(pair.getRightText()))
+                            .sorted(Comparator.comparing(MatchingRightItemResponse::rightText))
                             .toList()
             );
         }

@@ -9,6 +9,8 @@ public interface SubmissionRepository extends MongoRepository<Submission, String
 
     Optional<Submission> findByExamIdAndStudentIdAndAttemptNumber(String examId, String studentId, int attemptNumber);
 
+    List<Submission> findByExamIdAndStudentId(String examId, String studentId);
+
     List<Submission> findByExamId(String examId);
 
     List<Submission> findByStudentId(String studentId);
