@@ -6,11 +6,11 @@ spring:
     name: he-thong-thi-online-v2
   data:
     mongodb:
-      uri: ${mongodb+srv://zt42505:<25052005nta>@cluster0.vckbh4c.mongodb.net/?appName=Cluster0}
+      uri: "mongodb+srv://zt42505:25052005nta@cluster0.vckbh4c.mongodb.net/HeThongThiOnline?retryWrites=true&w=majority&appName=Cluster0"
 
 app:
   jwt:
-    secret: ${JWT_SECRET}
+    secret: "ahsdlkjashldkhdlakshdkwaswadsdwadasdsadhjkwahdasdwad"
     expiration: ${JWT_EXPIRATION:86400000}
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
@@ -25,3 +25,10 @@ app:
     student-username: ${SEED_STUDENT_USERNAME:student}
     student-email: ${SEED_STUDENT_EMAIL:student@example.com}
     student-password: ${SEED_STUDENT_PASSWORD:}
+  bootstrap-admin:
+    enabled: ${BOOTSTRAP_ADMIN_ENABLED:false}
+    username: ${BOOTSTRAP_ADMIN_USERNAME:admin}
+    email: ${BOOTSTRAP_ADMIN_EMAIL:admin@example.com}
+    password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+    full-name: ${BOOTSTRAP_ADMIN_FULL_NAME:System Admin}
+    admin-code: ${BOOTSTRAP_ADMIN_CODE:ADM-ROOT}
