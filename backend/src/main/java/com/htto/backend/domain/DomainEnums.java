@@ -94,6 +94,12 @@ public final class DomainEnums {
         CANCELLED
     }
 
+    public enum AttemptAnswerStatus {
+        NOT_GRADED,
+        CORRECT,
+        WRONG
+    }
+
     public enum GradingStatus {
         CORRECT,
         INCORRECT,
