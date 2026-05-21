@@ -75,6 +75,9 @@ class ExamAttemptSubmitServiceTest {
     @Mock
     private SystemLogRepository systemLogRepository;
 
+    @Mock
+    private SystemLogService systemLogService;
+
     private ExamAttemptSubmitService service;
 
     @BeforeEach
@@ -86,7 +89,8 @@ class ExamAttemptSubmitServiceTest {
                 questionRepository,
                 accountRepository,
                 studentProfileRepository,
-                systemLogRepository
+                systemLogRepository,
+                systemLogService
         );
 
         Account account = new Account();

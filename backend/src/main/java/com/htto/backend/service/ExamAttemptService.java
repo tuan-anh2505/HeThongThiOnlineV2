@@ -69,6 +69,7 @@ public class ExamAttemptService {
     private final SystemLogRepository systemLogRepository;
     private final PasswordEncoder passwordEncoder;
     private final ExamAttemptSubmitService examAttemptSubmitService;
+    private final SystemLogService systemLogService;
 
     public ExamAttemptService(
             ExamAttemptRepository examAttemptRepository,
@@ -81,7 +82,8 @@ public class ExamAttemptService {
             ClassStudentRepository classStudentRepository,
             SystemLogRepository systemLogRepository,
             PasswordEncoder passwordEncoder,
-            ExamAttemptSubmitService examAttemptSubmitService
+            ExamAttemptSubmitService examAttemptSubmitService,
+            SystemLogService systemLogService
     ) {
         this.examAttemptRepository = examAttemptRepository;
         this.examRepository = examRepository;
@@ -94,6 +96,7 @@ public class ExamAttemptService {
         this.systemLogRepository = systemLogRepository;
         this.passwordEncoder = passwordEncoder;
         this.examAttemptSubmitService = examAttemptSubmitService;
+        this.systemLogService = systemLogService;
     }
 
     public ExamAttemptResponse startExam(String examId, StartExamRequest request, String username) {
@@ -138,7 +141,9 @@ public class ExamAttemptService {
         attempt.setAttemptNumber(nextAttemptNumber);
         attempt.setQuestionSnapshots(buildQuestionSnapshots(exam));
 
-        return ExamAttemptResponse.from(examAttemptRepository.save(attempt), exam, now);
+        ExamAttempt saved = examAttemptRepository.save(attempt);
+        systemLogService.log(student.getAccountId(), "START_EXAM", "EXAM_ATTEMPT", saved.getId(), "Student started exam");
+        return ExamAttemptResponse.from(saved, exam, now);
     }
 
     public ExamAttemptResponse getAttempt(String attemptId, String username) {

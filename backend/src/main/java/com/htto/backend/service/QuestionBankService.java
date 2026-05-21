@@ -42,6 +42,7 @@ public class QuestionBankService {
     private final ClassSubjectTeacherRepository assignmentRepository;
     private final ExamRepository examRepository;
     private final MongoTemplate mongoTemplate;
+    private final SystemLogService systemLogService;
 
     public QuestionBankService(
             QuestionBankRepository questionBankRepository,
@@ -50,7 +51,8 @@ public class QuestionBankService {
             AccountRepository accountRepository,
             ClassSubjectTeacherRepository assignmentRepository,
             ExamRepository examRepository,
-            MongoTemplate mongoTemplate
+            MongoTemplate mongoTemplate,
+            SystemLogService systemLogService
     ) {
         this.questionBankRepository = questionBankRepository;
         this.subjectRepository = subjectRepository;
@@ -59,6 +61,7 @@ public class QuestionBankService {
         this.assignmentRepository = assignmentRepository;
         this.examRepository = examRepository;
         this.mongoTemplate = mongoTemplate;
+        this.systemLogService = systemLogService;
     }
 
     public List<QuestionBankResponse> searchQuestionBanks(
@@ -132,7 +135,9 @@ public class QuestionBankService {
         questionBank.setTeacherId(teacher.getId());
         questionBank.setStatus(request.status() == null ? QuestionBankStatus.ACTIVE : request.status());
 
-        return toResponse(questionBankRepository.save(questionBank));
+        QuestionBank saved = questionBankRepository.save(questionBank);
+        systemLogService.logCurrentUser("CREATE_QUESTION_BANK", "QUESTION_BANK", saved.getId(), "Created question bank");
+        return toResponse(saved);
     }
 
     public QuestionBankResponse getQuestionBank(String id, String username) {
@@ -174,7 +179,9 @@ public class QuestionBankService {
             questionBank.setStatus(request.status());
         }
 
-        return toResponse(questionBankRepository.save(questionBank));
+        QuestionBank saved = questionBankRepository.save(questionBank);
+        systemLogService.logCurrentUser("UPDATE_QUESTION_BANK", "QUESTION_BANK", saved.getId(), "Updated question bank");
+        return toResponse(saved);
     }
 
     public void deleteQuestionBank(String id, String username) {
@@ -185,11 +192,13 @@ public class QuestionBankService {
         if (!examRepository.findByQuestionBankId(questionBank.getId()).isEmpty()) {
             questionBank.setStatus(QuestionBankStatus.INACTIVE);
             questionBankRepository.save(questionBank);
+            systemLogService.logCurrentUser("DELETE_QUESTION_BANK", "QUESTION_BANK", questionBank.getId(), "Set question bank inactive");
             return;
         }
 
         questionBank.setStatus(QuestionBankStatus.INACTIVE);
         questionBankRepository.save(questionBank);
+        systemLogService.logCurrentUser("DELETE_QUESTION_BANK", "QUESTION_BANK", questionBank.getId(), "Set question bank inactive");
     }
 
     private TeacherProfile resolveTeacherForCreate(Account account, String requestedTeacherId, String subjectId) {

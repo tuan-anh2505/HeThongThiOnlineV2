@@ -86,6 +86,7 @@ public class ExamService {
     private final SystemLogRepository systemLogRepository;
     private final PasswordEncoder passwordEncoder;
     private final MongoTemplate mongoTemplate;
+    private final SystemLogService systemLogService;
 
     public ExamService(
             ExamRepository examRepository,
@@ -100,7 +101,8 @@ public class ExamService {
             SubmissionRepository submissionRepository,
             SystemLogRepository systemLogRepository,
             PasswordEncoder passwordEncoder,
-            MongoTemplate mongoTemplate
+            MongoTemplate mongoTemplate,
+            SystemLogService systemLogService
     ) {
         this.examRepository = examRepository;
         this.examQuestionRepository = examQuestionRepository;
@@ -115,6 +117,7 @@ public class ExamService {
         this.systemLogRepository = systemLogRepository;
         this.passwordEncoder = passwordEncoder;
         this.mongoTemplate = mongoTemplate;
+        this.systemLogService = systemLogService;
     }
 
     public List<ExamResponse> searchExams(
@@ -199,6 +202,7 @@ public class ExamService {
         exam.setStatus(ExamStatus.DRAFT);
 
         Exam saved = examRepository.save(exam);
+        systemLogService.logCurrentUser("CREATE_EXAM", "EXAM", saved.getId(), "Created exam");
         if (Boolean.TRUE.equals(saved.getHasPassword())) {
             logExamPasswordAction(account, saved, "CREATE_EXAM_PASSWORD", "Created exam with password");
         }
@@ -268,6 +272,7 @@ public class ExamService {
         PasswordChange passwordChange = applyUpdatePassword(exam, request);
 
         Exam saved = examRepository.save(exam);
+        systemLogService.logCurrentUser("UPDATE_EXAM", "EXAM", saved.getId(), "Updated exam");
         if (passwordChange == PasswordChange.UPDATED) {
             logExamPasswordAction(account, saved, "UPDATE_EXAM_PASSWORD", "Updated exam password");
         } else if (passwordChange == PasswordChange.REMOVED) {
@@ -281,6 +286,7 @@ public class ExamService {
         ensureCanManageExam(getCurrentAccount(username), exam);
         exam.setStatus(ExamStatus.CANCELLED);
         examRepository.save(exam);
+        systemLogService.logCurrentUser("DELETE_EXAM", "EXAM", exam.getId(), "Cancelled exam by delete action");
     }
 
     public ExamResponse addQuestion(String id, ExamQuestionCreateRequest request, String username) {
@@ -420,7 +426,9 @@ public class ExamService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot publish exam without questions");
         }
         exam.setStatus(ExamStatus.PUBLISHED);
-        return toResponse(syncExamQuestions(exam));
+        Exam saved = syncExamQuestions(exam);
+        systemLogService.logCurrentUser("PUBLISH_EXAM", "EXAM", saved.getId(), "Published exam");
+        return toResponse(saved);
     }
 
     public ExamResponse closeExam(String id, String username) {
@@ -430,14 +438,18 @@ public class ExamService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cancelled exam cannot be closed");
         }
         exam.setStatus(ExamStatus.CLOSED);
-        return toResponse(examRepository.save(exam));
+        Exam saved = examRepository.save(exam);
+        systemLogService.logCurrentUser("CLOSE_EXAM", "EXAM", saved.getId(), "Closed exam");
+        return toResponse(saved);
     }
 
     public ExamResponse cancelExam(String id, String username) {
         Exam exam = getExamOrThrow(id);
         ensureCanManageExam(getCurrentAccount(username), exam);
         exam.setStatus(ExamStatus.CANCELLED);
-        return toResponse(examRepository.save(exam));
+        Exam saved = examRepository.save(exam);
+        systemLogService.logCurrentUser("CANCEL_EXAM", "EXAM", saved.getId(), "Cancelled exam");
+        return toResponse(saved);
     }
 
     private void applyCreatePassword(Exam exam, String examPassword) {

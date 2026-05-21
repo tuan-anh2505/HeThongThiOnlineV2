@@ -58,6 +58,7 @@ public class ExamAttemptSubmitService {
     private final AccountRepository accountRepository;
     private final StudentProfileRepository studentProfileRepository;
     private final SystemLogRepository systemLogRepository;
+    private final SystemLogService systemLogService;
 
     public ExamAttemptSubmitService(
             ExamAttemptRepository examAttemptRepository,
@@ -66,7 +67,8 @@ public class ExamAttemptSubmitService {
             QuestionRepository questionRepository,
             AccountRepository accountRepository,
             StudentProfileRepository studentProfileRepository,
-            SystemLogRepository systemLogRepository
+            SystemLogRepository systemLogRepository,
+            SystemLogService systemLogService
     ) {
         this.examAttemptRepository = examAttemptRepository;
         this.attemptAnswerRepository = attemptAnswerRepository;
@@ -75,6 +77,7 @@ public class ExamAttemptSubmitService {
         this.accountRepository = accountRepository;
         this.studentProfileRepository = studentProfileRepository;
         this.systemLogRepository = systemLogRepository;
+        this.systemLogService = systemLogService;
     }
 
     public SubmitAttemptResponse submitAttempt(String attemptId, String username) {
@@ -90,7 +93,9 @@ public class ExamAttemptSubmitService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Exam attempt is not in progress");
         }
 
-        return toSubmitResponse(gradeAndCloseAttempt(attempt, exam, ExamAttemptStatus.SUBMITTED), exam);
+        ExamAttempt submitted = gradeAndCloseAttempt(attempt, exam, ExamAttemptStatus.SUBMITTED);
+        systemLogService.log(student.getAccountId(), "SUBMIT_EXAM", "EXAM_ATTEMPT", submitted.getId(), "Student submitted exam");
+        return toSubmitResponse(submitted, exam);
     }
 
     public SubmitAttemptResponse autoSubmitAttempt(String attemptId, String username) {

@@ -22,10 +22,16 @@ public class SubjectService {
 
     private final SubjectRepository subjectRepository;
     private final MongoTemplate mongoTemplate;
+    private final SystemLogService systemLogService;
 
-    public SubjectService(SubjectRepository subjectRepository, MongoTemplate mongoTemplate) {
+    public SubjectService(
+            SubjectRepository subjectRepository,
+            MongoTemplate mongoTemplate,
+            SystemLogService systemLogService
+    ) {
         this.subjectRepository = subjectRepository;
         this.mongoTemplate = mongoTemplate;
+        this.systemLogService = systemLogService;
     }
 
     public List<SubjectResponse> searchSubjects(String subjectCode, String subjectName, SubjectStatus status) {
@@ -56,7 +62,9 @@ public class SubjectService {
         subject.setDescription(trimToNull(request.description()));
         subject.setStatus(request.status() == null ? SubjectStatus.ACTIVE : request.status());
 
-        return SubjectResponse.from(subjectRepository.save(subject));
+        Subject saved = subjectRepository.save(subject);
+        systemLogService.logCurrentUser("CREATE_SUBJECT", "SUBJECT", saved.getId(), "Created subject");
+        return SubjectResponse.from(saved);
     }
 
     public SubjectResponse getSubject(String id) {
@@ -80,13 +88,16 @@ public class SubjectService {
             subject.setStatus(request.status());
         }
 
-        return SubjectResponse.from(subjectRepository.save(subject));
+        Subject saved = subjectRepository.save(subject);
+        systemLogService.logCurrentUser("UPDATE_SUBJECT", "SUBJECT", saved.getId(), "Updated subject");
+        return SubjectResponse.from(saved);
     }
 
     public void deleteSubject(String id) {
         Subject subject = getSubjectOrThrow(id);
         subject.setStatus(SubjectStatus.INACTIVE);
         subjectRepository.save(subject);
+        systemLogService.logCurrentUser("DELETE_SUBJECT", "SUBJECT", subject.getId(), "Set subject inactive");
     }
 
     private Subject getSubjectOrThrow(String id) {

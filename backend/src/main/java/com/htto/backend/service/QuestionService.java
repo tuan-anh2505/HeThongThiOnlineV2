@@ -46,19 +46,22 @@ public class QuestionService {
     private final AccountRepository accountRepository;
     private final TeacherProfileRepository teacherProfileRepository;
     private final MongoTemplate mongoTemplate;
+    private final SystemLogService systemLogService;
 
     public QuestionService(
             QuestionRepository questionRepository,
             QuestionBankRepository questionBankRepository,
             AccountRepository accountRepository,
             TeacherProfileRepository teacherProfileRepository,
-            MongoTemplate mongoTemplate
+            MongoTemplate mongoTemplate,
+            SystemLogService systemLogService
     ) {
         this.questionRepository = questionRepository;
         this.questionBankRepository = questionBankRepository;
         this.accountRepository = accountRepository;
         this.teacherProfileRepository = teacherProfileRepository;
         this.mongoTemplate = mongoTemplate;
+        this.systemLogService = systemLogService;
     }
 
     public List<QuestionResponse> searchQuestions(
@@ -99,7 +102,9 @@ public class QuestionService {
         QuestionBank questionBank = getActiveQuestionBankOrThrow(questionBankId);
         ensureCanAccessBank(getCurrentAccount(username), questionBank);
 
-        return QuestionResponse.from(questionRepository.save(buildQuestion(questionBank.getId(), request)));
+        Question saved = questionRepository.save(buildQuestion(questionBank.getId(), request));
+        systemLogService.logCurrentUser("CREATE_QUESTION", "QUESTION", saved.getId(), "Created question");
+        return QuestionResponse.from(saved);
     }
 
     public void validateQuestionBankImportAccess(String questionBankId, String username) {
@@ -123,7 +128,14 @@ public class QuestionService {
                 .map(request -> buildQuestion(questionBank.getId(), request))
                 .toList();
 
-        return questionRepository.saveAll(questions)
+        List<Question> savedQuestions = questionRepository.saveAll(questions);
+        savedQuestions.forEach(question -> systemLogService.logCurrentUser(
+                "CREATE_QUESTION",
+                "QUESTION",
+                question.getId(),
+                "Imported question"
+        ));
+        return savedQuestions
                 .stream()
                 .map(QuestionResponse::from)
                 .toList();
@@ -167,7 +179,9 @@ public class QuestionService {
         question.setAnswerDefinition(nextAnswer);
 
         validateQuestion(question);
-        return QuestionResponse.from(questionRepository.save(question));
+        Question saved = questionRepository.save(question);
+        systemLogService.logCurrentUser("UPDATE_QUESTION", "QUESTION", saved.getId(), "Updated question");
+        return QuestionResponse.from(saved);
     }
 
     public void deleteQuestion(String id, String username) {
@@ -176,6 +190,7 @@ public class QuestionService {
         ensureCanAccessBank(getCurrentAccount(username), questionBank);
         question.setStatus(QuestionStatus.INACTIVE);
         questionRepository.save(question);
+        systemLogService.logCurrentUser("DELETE_QUESTION", "QUESTION", question.getId(), "Set question inactive");
     }
 
     private Question buildQuestion(String questionBankId, QuestionCreateRequest request) {

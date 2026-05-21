@@ -39,6 +39,7 @@ public class ExamSessionService {
     private final TeacherProfileRepository teacherProfileRepository;
     private final StudentProfileRepository studentProfileRepository;
     private final ClassStudentRepository classStudentRepository;
+    private final SystemLogService systemLogService;
 
     public ExamSessionService(
             ExamSessionRepository examSessionRepository,
@@ -46,7 +47,8 @@ public class ExamSessionService {
             AccountRepository accountRepository,
             TeacherProfileRepository teacherProfileRepository,
             StudentProfileRepository studentProfileRepository,
-            ClassStudentRepository classStudentRepository
+            ClassStudentRepository classStudentRepository,
+            SystemLogService systemLogService
     ) {
         this.examSessionRepository = examSessionRepository;
         this.examRepository = examRepository;
@@ -54,6 +56,7 @@ public class ExamSessionService {
         this.teacherProfileRepository = teacherProfileRepository;
         this.studentProfileRepository = studentProfileRepository;
         this.classStudentRepository = classStudentRepository;
+        this.systemLogService = systemLogService;
     }
 
     public List<ExamSessionResponse> getExamSessions(String examId, String username) {
@@ -83,7 +86,9 @@ public class ExamSessionService {
         examSession.setEndTime(request.endTime());
         examSession.setStatus(resolveTemporalStatus(request.startTime(), request.endTime(), Instant.now()));
 
-        return ExamSessionResponse.from(examSessionRepository.save(examSession));
+        ExamSession saved = examSessionRepository.save(examSession);
+        systemLogService.logCurrentUser("CREATE_EXAM_SESSION", "EXAM_SESSION", saved.getId(), "Created exam session");
+        return ExamSessionResponse.from(saved);
     }
 
     public ExamSessionResponse getSession(String id, String username) {
@@ -116,7 +121,9 @@ public class ExamSessionService {
         examSession.setStartTime(nextStartTime);
         examSession.setEndTime(nextEndTime);
         examSession.setStatus(resolveTemporalStatus(nextStartTime, nextEndTime, Instant.now()));
-        return ExamSessionResponse.from(examSessionRepository.save(examSession));
+        ExamSession saved = examSessionRepository.save(examSession);
+        systemLogService.logCurrentUser("UPDATE_EXAM_SESSION", "EXAM_SESSION", saved.getId(), "Updated exam session");
+        return ExamSessionResponse.from(saved);
     }
 
     public void deleteSession(String id, String username) {
@@ -126,6 +133,7 @@ public class ExamSessionService {
 
         examSession.setStatus(ExamSessionStatus.CANCELLED);
         examSessionRepository.save(examSession);
+        systemLogService.logCurrentUser("CANCEL_EXAM_SESSION", "EXAM_SESSION", examSession.getId(), "Cancelled exam session");
     }
 
     public ExamSessionResponse cancelSession(String id, String username) {
@@ -134,7 +142,9 @@ public class ExamSessionService {
         ensureCanManageExam(getCurrentAccount(username), exam);
 
         examSession.setStatus(ExamSessionStatus.CANCELLED);
-        return ExamSessionResponse.from(examSessionRepository.save(examSession));
+        ExamSession saved = examSessionRepository.save(examSession);
+        systemLogService.logCurrentUser("CANCEL_EXAM_SESSION", "EXAM_SESSION", saved.getId(), "Cancelled exam session");
+        return ExamSessionResponse.from(saved);
     }
 
     public ExamSessionAccessResponse checkStudentAccess(String id, String username) {

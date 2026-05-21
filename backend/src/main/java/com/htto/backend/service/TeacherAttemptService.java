@@ -10,7 +10,6 @@ import com.htto.backend.domain.ExamAttempt;
 import com.htto.backend.domain.Role;
 import com.htto.backend.domain.StudentProfile;
 import com.htto.backend.domain.Subject;
-import com.htto.backend.domain.SystemLog;
 import com.htto.backend.domain.TeacherProfile;
 import com.htto.backend.domain.embedded.ExamAttemptQuestionSnapshot;
 import com.htto.backend.dto.response.AttemptAnswerValueResponse;
@@ -26,10 +25,8 @@ import com.htto.backend.repository.ExamAttemptRepository;
 import com.htto.backend.repository.ExamRepository;
 import com.htto.backend.repository.StudentProfileRepository;
 import com.htto.backend.repository.SubjectRepository;
-import com.htto.backend.repository.SystemLogRepository;
 import com.htto.backend.repository.TeacherProfileRepository;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -52,8 +49,8 @@ public class TeacherAttemptService {
     private final AttemptAnswerRepository attemptAnswerRepository;
     private final ClassSubjectTeacherRepository assignmentRepository;
     private final SubjectRepository subjectRepository;
-    private final SystemLogRepository systemLogRepository;
     private final ExamAttemptSubmitService examAttemptSubmitService;
+    private final SystemLogService systemLogService;
 
     public TeacherAttemptService(
             AccountRepository accountRepository,
@@ -64,8 +61,8 @@ public class TeacherAttemptService {
             AttemptAnswerRepository attemptAnswerRepository,
             ClassSubjectTeacherRepository assignmentRepository,
             SubjectRepository subjectRepository,
-            SystemLogRepository systemLogRepository,
-            ExamAttemptSubmitService examAttemptSubmitService
+            ExamAttemptSubmitService examAttemptSubmitService,
+            SystemLogService systemLogService
     ) {
         this.accountRepository = accountRepository;
         this.teacherProfileRepository = teacherProfileRepository;
@@ -75,8 +72,8 @@ public class TeacherAttemptService {
         this.attemptAnswerRepository = attemptAnswerRepository;
         this.assignmentRepository = assignmentRepository;
         this.subjectRepository = subjectRepository;
-        this.systemLogRepository = systemLogRepository;
         this.examAttemptSubmitService = examAttemptSubmitService;
+        this.systemLogService = systemLogService;
     }
 
     public List<TeacherAttemptSummaryResponse> getExamAttempts(String examId, String username) {
@@ -142,7 +139,7 @@ public class TeacherAttemptService {
         Exam exam = getAccessibleExam(examId, scope.teacher());
         exam.setResultStatus(ResultPublishStatus.PUBLISHED);
         Exam saved = examRepository.save(exam);
-        logResultAction(scope.account(), saved, "PUBLISH_EXAM_RESULTS", "Published exam results");
+        systemLogService.log(scope.account().getId(), "PUBLISH_RESULTS", "EXAM", saved.getId(), "Published exam results");
         return new ExamResultStatusResponse(saved.getId(), saved.getResultStatus());
     }
 
@@ -151,7 +148,7 @@ public class TeacherAttemptService {
         Exam exam = getAccessibleExam(examId, scope.teacher());
         exam.setResultStatus(ResultPublishStatus.NOT_PUBLISHED);
         Exam saved = examRepository.save(exam);
-        logResultAction(scope.account(), saved, "HIDE_EXAM_RESULTS", "Hid exam results");
+        systemLogService.log(scope.account().getId(), "HIDE_RESULTS", "EXAM", saved.getId(), "Hid exam results");
         return new ExamResultStatusResponse(saved.getId(), saved.getResultStatus());
     }
 
@@ -273,17 +270,6 @@ public class TeacherAttemptService {
             return null;
         }
         return subjectRepository.findById(exam.getSubjectId()).orElse(null);
-    }
-
-    private void logResultAction(Account account, Exam exam, String action, String detail) {
-        SystemLog log = new SystemLog();
-        log.setUserId(account.getId());
-        log.setAction(action);
-        log.setOccurredAt(Instant.now());
-        log.setTargetType("EXAM");
-        log.setTargetId(exam.getId());
-        log.setDetail(detail + ", examId=" + exam.getId());
-        systemLogRepository.save(log);
     }
 
     private TeacherScope getTeacherScope(String username) {

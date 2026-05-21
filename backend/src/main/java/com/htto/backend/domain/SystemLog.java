@@ -6,12 +6,13 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "system_logs")
-@CompoundIndex(name = "idx_log_user_time", def = "{'userId': 1, 'occurredAt': -1}")
+@CompoundIndex(name = "idx_log_account_time", def = "{'accountId': 1, 'createdAt': -1}")
 public class SystemLog extends AuditableDocument {
 
     @Indexed
-    private String userId;
+    private String accountId;
 
+    @Indexed
     private String action;
 
     @Indexed
@@ -25,14 +26,30 @@ public class SystemLog extends AuditableDocument {
     @Indexed
     private String targetId;
 
-    private String detail;
+    private String description;
+
+    public String getLogId() {
+        return getId();
+    }
+
+    public void setLogId(String logId) {
+        setId(logId);
+    }
+
+    public String getAccountId() {
+        return accountId;
+    }
+
+    public void setAccountId(String accountId) {
+        this.accountId = accountId;
+    }
 
     public String getUserId() {
-        return userId;
+        return accountId;
     }
 
     public void setUserId(String userId) {
-        this.userId = userId;
+        this.accountId = userId;
     }
 
     public String getAction() {
@@ -75,11 +92,19 @@ public class SystemLog extends AuditableDocument {
         this.targetId = targetId;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
     public String getDetail() {
-        return detail;
+        return description;
     }
 
     public void setDetail(String detail) {
-        this.detail = detail;
+        this.description = detail;
     }
 }

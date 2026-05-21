@@ -6,6 +6,7 @@ import com.htto.backend.dto.response.AccountResponse;
 import com.htto.backend.dto.response.LoginResponse;
 import com.htto.backend.security.JwtService;
 import com.htto.backend.service.AccountService;
+import com.htto.backend.service.SystemLogService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -28,15 +29,18 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final AccountService accountService;
+    private final SystemLogService systemLogService;
 
     public AuthController(
             AuthenticationManager authenticationManager,
             JwtService jwtService,
-            AccountService accountService
+            AccountService accountService,
+            SystemLogService systemLogService
     ) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.accountService = accountService;
+        this.systemLogService = systemLogService;
     }
 
     @PostMapping("/login")
@@ -54,6 +58,7 @@ public class AuthController {
 
         Account account = accountService.getActiveAccountByUsername(request.username());
         String token = jwtService.generateToken((UserDetails) authentication.getPrincipal());
+        systemLogService.log(account.getId(), "LOGIN", "ACCOUNT", account.getId(), "User logged in");
         return new LoginResponse(
                 token,
                 "Bearer",

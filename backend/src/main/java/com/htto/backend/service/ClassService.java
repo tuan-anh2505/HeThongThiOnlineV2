@@ -49,6 +49,7 @@ public class ClassService {
     private final AccountRepository accountRepository;
     private final ClassSubjectTeacherRepository classSubjectTeacherRepository;
     private final MongoTemplate mongoTemplate;
+    private final SystemLogService systemLogService;
 
     public ClassService(
             SchoolClassRepository schoolClassRepository,
@@ -57,7 +58,8 @@ public class ClassService {
             TeacherProfileRepository teacherProfileRepository,
             AccountRepository accountRepository,
             ClassSubjectTeacherRepository classSubjectTeacherRepository,
-            MongoTemplate mongoTemplate
+            MongoTemplate mongoTemplate,
+            SystemLogService systemLogService
     ) {
         this.schoolClassRepository = schoolClassRepository;
         this.classStudentRepository = classStudentRepository;
@@ -66,6 +68,7 @@ public class ClassService {
         this.accountRepository = accountRepository;
         this.classSubjectTeacherRepository = classSubjectTeacherRepository;
         this.mongoTemplate = mongoTemplate;
+        this.systemLogService = systemLogService;
     }
 
     public List<ClassResponse> searchClasses(
@@ -106,7 +109,9 @@ public class ClassService {
         schoolClass.setStatus(request.status() == null ? ClassStatus.ACTIVE : request.status());
         schoolClass.setStudentCount(0);
 
-        return ClassResponse.from(schoolClassRepository.save(schoolClass));
+        SchoolClass saved = schoolClassRepository.save(schoolClass);
+        systemLogService.logCurrentUser("CREATE_CLASS", "CLASS", saved.getId(), "Created class");
+        return ClassResponse.from(saved);
     }
 
     public ClassResponse getClass(String id) {
@@ -131,13 +136,16 @@ public class ClassService {
             schoolClass.setStatus(request.status());
         }
 
-        return ClassResponse.from(schoolClassRepository.save(schoolClass));
+        SchoolClass saved = schoolClassRepository.save(schoolClass);
+        systemLogService.logCurrentUser("UPDATE_CLASS", "CLASS", saved.getId(), "Updated class");
+        return ClassResponse.from(saved);
     }
 
     public void deleteClass(String id) {
         SchoolClass schoolClass = getClassOrThrow(id);
         schoolClass.setStatus(ClassStatus.INACTIVE);
         schoolClassRepository.save(schoolClass);
+        systemLogService.logCurrentUser("DELETE_CLASS", "CLASS", schoolClass.getId(), "Set class inactive");
     }
 
     public List<ClassStudentResponse> getStudents(String classId, String username) {
@@ -193,6 +201,7 @@ public class ClassService {
             updateStudentCount(schoolClass);
         }
 
+        systemLogService.logCurrentUser("ADD_STUDENT_TO_CLASS", "CLASS", classId, "Added student to class: " + student.getId());
         return toClassStudentResponse(saved);
     }
 
@@ -220,6 +229,7 @@ public class ClassService {
         });
 
         updateStudentCount(schoolClass);
+        systemLogService.logCurrentUser("REMOVE_STUDENT_FROM_CLASS", "CLASS", classId, "Removed student from class: " + studentId);
     }
 
     public List<ClassResponse> getTeacherClasses(String username) {

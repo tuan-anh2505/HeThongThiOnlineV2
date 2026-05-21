@@ -27,16 +27,19 @@ public class AccountService {
     private final MongoTemplate mongoTemplate;
     private final PasswordEncoder passwordEncoder;
     private final ProfileService profileService;
+    private final SystemLogService systemLogService;
 
     public AccountService(
             AccountRepository accountRepository,
             MongoTemplate mongoTemplate,
             PasswordEncoder passwordEncoder,
-            ProfileService profileService) {
+            ProfileService profileService,
+            SystemLogService systemLogService) {
         this.accountRepository = accountRepository;
         this.mongoTemplate = mongoTemplate;
         this.passwordEncoder = passwordEncoder;
         this.profileService = profileService;
+        this.systemLogService = systemLogService;
     }
 
     public AccountResponse create(AccountCreateRequest request) {
@@ -56,6 +59,7 @@ public class AccountService {
 
         Account savedAccount = accountRepository.save(account);
         profileService.createProfileForAccount(savedAccount, request);
+        systemLogService.logCurrentUser("CREATE_ACCOUNT", "ACCOUNT", savedAccount.getId(), "Created account");
         return AccountResponse.from(savedAccount);
     }
 
@@ -89,19 +93,25 @@ public class AccountService {
             account.setStatus(request.status());
         }
 
-        return AccountResponse.from(accountRepository.save(account));
+        Account saved = accountRepository.save(account);
+        systemLogService.logCurrentUser("UPDATE_ACCOUNT", "ACCOUNT", saved.getId(), "Updated account");
+        return AccountResponse.from(saved);
     }
 
     public AccountResponse lock(String id) {
         Account account = getAccountOrThrow(id);
         account.setStatus(AccountStatus.LOCKED);
-        return AccountResponse.from(accountRepository.save(account));
+        Account saved = accountRepository.save(account);
+        systemLogService.logCurrentUser("LOCK_ACCOUNT", "ACCOUNT", saved.getId(), "Locked account");
+        return AccountResponse.from(saved);
     }
 
     public AccountResponse unlock(String id) {
         Account account = getAccountOrThrow(id);
         account.setStatus(AccountStatus.ACTIVE);
-        return AccountResponse.from(accountRepository.save(account));
+        Account saved = accountRepository.save(account);
+        systemLogService.logCurrentUser("UNLOCK_ACCOUNT", "ACCOUNT", saved.getId(), "Unlocked account");
+        return AccountResponse.from(saved);
     }
 
     public void softDelete(String id) {
@@ -110,6 +120,7 @@ public class AccountService {
         account.setDeletedAt(Instant.now());
         account.setStatus(AccountStatus.LOCKED);
         accountRepository.save(account);
+        systemLogService.logCurrentUser("DELETE_ACCOUNT", "ACCOUNT", account.getId(), "Soft-deleted account");
     }
 
     public AccountResponse getByUsername(String username) {

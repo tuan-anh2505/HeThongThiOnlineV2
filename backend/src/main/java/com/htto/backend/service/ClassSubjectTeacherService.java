@@ -52,6 +52,7 @@ public class ClassSubjectTeacherService {
     private final ClassStudentRepository classStudentRepository;
     private final AccountRepository accountRepository;
     private final MongoTemplate mongoTemplate;
+    private final SystemLogService systemLogService;
 
     public ClassSubjectTeacherService(
             ClassSubjectTeacherRepository assignmentRepository,
@@ -61,7 +62,8 @@ public class ClassSubjectTeacherService {
             StudentProfileRepository studentProfileRepository,
             ClassStudentRepository classStudentRepository,
             AccountRepository accountRepository,
-            MongoTemplate mongoTemplate
+            MongoTemplate mongoTemplate,
+            SystemLogService systemLogService
     ) {
         this.assignmentRepository = assignmentRepository;
         this.schoolClassRepository = schoolClassRepository;
@@ -71,6 +73,7 @@ public class ClassSubjectTeacherService {
         this.classStudentRepository = classStudentRepository;
         this.accountRepository = accountRepository;
         this.mongoTemplate = mongoTemplate;
+        this.systemLogService = systemLogService;
     }
 
     public List<ClassSubjectTeacherResponse> searchAssignments(
@@ -116,6 +119,7 @@ public class ClassSubjectTeacherService {
 
         ClassSubjectTeacher saved = assignmentRepository.save(assignment);
         syncTeacherScope(saved.getTeacherId());
+        systemLogService.logCurrentUser("CREATE_CLASS_SUBJECT_TEACHER", "CLASS_SUBJECT_TEACHER", saved.getId(), "Created class-subject-teacher assignment");
         return toResponse(saved);
     }
 
@@ -147,6 +151,7 @@ public class ClassSubjectTeacherService {
         ClassSubjectTeacher saved = assignmentRepository.save(assignment);
         syncTeacherScope(previousTeacherId);
         syncTeacherScope(saved.getTeacherId());
+        systemLogService.logCurrentUser("UPDATE_CLASS_SUBJECT_TEACHER", "CLASS_SUBJECT_TEACHER", saved.getId(), "Updated class-subject-teacher assignment");
         return toResponse(saved);
     }
 
@@ -155,6 +160,7 @@ public class ClassSubjectTeacherService {
         assignment.setStatus(AssignmentStatus.INACTIVE);
         assignmentRepository.save(assignment);
         syncTeacherScope(assignment.getTeacherId());
+        systemLogService.logCurrentUser("DELETE_CLASS_SUBJECT_TEACHER", "CLASS_SUBJECT_TEACHER", assignment.getId(), "Set class-subject-teacher assignment inactive");
     }
 
     public List<ClassSubjectTeacherResponse> getTeacherSubjects(String username) {

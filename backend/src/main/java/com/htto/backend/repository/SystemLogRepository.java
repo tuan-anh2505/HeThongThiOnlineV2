@@ -7,7 +7,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 public interface SystemLogRepository extends MongoRepository<SystemLog, String> {
 
-    List<SystemLog> findByUserId(String userId);
+    List<SystemLog> findByAccountId(String accountId);
 
     List<SystemLog> findByOccurredAtBetween(Instant from, Instant to);
 }
