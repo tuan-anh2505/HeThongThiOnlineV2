@@ -420,8 +420,8 @@ public class DatabaseSeeder implements ApplicationRunner {
 
         ExamSession session = new ExamSession();
         session.setExamId(exam.getId());
-        session.setStartAt(Instant.now().minus(1, ChronoUnit.HOURS));
-        session.setEndAt(Instant.now().plus(7, ChronoUnit.DAYS));
+        session.setStartTime(Instant.now().minus(1, ChronoUnit.HOURS));
+        session.setEndTime(Instant.now().plus(7, ChronoUnit.DAYS));
         session.setStatus(ExamSessionStatus.IN_PROGRESS);
         examSessionRepository.save(session);
     }

@@ -17,7 +17,7 @@ Tai lieu nay chuan hoa schema MongoDB cho he thong thi online. Cac quan he dung 
 | `question_banks` | Ngan hang cau hoi | `name`, `description`, `subjectId`, `teacherId`, `status` | `subjectId`, `teacherId` |
 | `questions` | Cau hoi thuoc ngan hang | `questionBankId`, `type`, `content`, `score`, `difficulty`, `topic`, `status`, `answerDefinition` | `questionBankId`, compound `questionBankId + type + difficulty` |
 | `exams` | Bai thi | `title`, `classIds`, `subjectId`, `questionBankId`, `teacherId`, `durationMinutes`, `maxAttempts`, `totalScore`, `settings`, `selectionConfig`, `questionRefs`, `status` | `classIds`, `subjectId`, `questionBankId`, `teacherId` |
-| `exam_sessions` | Ca thi | `examId`, `startAt`, `endAt`, `status` | `examId` |
+| `exam_sessions` | Ca thi | `examId`, `startTime`, `endTime`, `status` | `examId` |
 | `submissions` | Phieu bai lam | `studentId`, `examId`, `sessionId`, `startedAt`, `submittedAt`, `totalScore`, `attemptNumber`, `status` | compound unique `examId + studentId + attemptNumber`, `studentId`, `examId`, `sessionId` |
 | `submission_answers` | Chi tiet cau tra loi | `submissionId`, `examId`, `questionId`, `studentAnswer`, `correctAnswerSnapshot`, `score`, `gradingStatus` | compound unique `submissionId + questionId`, `submissionId`, `examId`, `questionId` |
 | `exam_results` | Ket qua cong bo/thong ke | `examId`, `classId`, `studentId`, `submissionId`, `score`, `maxScore`, `rank`, `publishStatus` | compound unique `examId + studentId`, `examId`, `classId`, `studentId`, `submissionId` |
@@ -52,7 +52,7 @@ Tai lieu nay chuan hoa schema MongoDB cho he thong thi online. Cac quan he dung 
 - `QuestionType`: `TRUE_FALSE`, `MULTIPLE_CHOICE`, `FILL_BLANK`, `MATCHING`
 - `Difficulty`: `EASY`, `MEDIUM`, `HARD`
 - `ExamStatus`: `DRAFT`, `PUBLISHED`, `OPEN`, `CLOSED`, `CANCELLED`
-- `ExamSessionStatus`: `NOT_OPENED`, `IN_PROGRESS`, `ENDED`, `CANCELLED`
+- `ExamSessionStatus`: `NOT_OPEN`, `IN_PROGRESS`, `FINISHED`, `CANCELLED`
 - `SubmissionStatus`: `IN_PROGRESS`, `SUBMITTED`, `OVERDUE`, `CANCELLED`
 - `GradingStatus`: `CORRECT`, `INCORRECT`, `PARTIAL`, `UNGRADED`
 - `ResultPublishStatus`: `UNPUBLISHED`, `PUBLISHED`

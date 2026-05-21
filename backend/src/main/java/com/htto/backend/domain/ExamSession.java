@@ -11,11 +11,11 @@ public class ExamSession extends AuditableDocument {
     @Indexed
     private String examId;
 
-    private Instant startAt;
+    private Instant startTime;
 
-    private Instant endAt;
+    private Instant endTime;
 
-    private ExamSessionStatus status = ExamSessionStatus.NOT_OPENED;
+    private ExamSessionStatus status = ExamSessionStatus.NOT_OPEN;
 
     public String getExamId() {
         return examId;
@@ -25,20 +25,20 @@ public class ExamSession extends AuditableDocument {
         this.examId = examId;
     }
 
-    public Instant getStartAt() {
-        return startAt;
+    public Instant getStartTime() {
+        return startTime;
     }
 
-    public void setStartAt(Instant startAt) {
-        this.startAt = startAt;
+    public void setStartTime(Instant startTime) {
+        this.startTime = startTime;
     }
 
-    public Instant getEndAt() {
-        return endAt;
+    public Instant getEndTime() {
+        return endTime;
     }
 
-    public void setEndAt(Instant endAt) {
-        this.endAt = endAt;
+    public void setEndTime(Instant endTime) {
+        this.endTime = endTime;
     }
 
     public ExamSessionStatus getStatus() {

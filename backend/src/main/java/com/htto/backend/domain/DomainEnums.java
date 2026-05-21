@@ -74,9 +74,9 @@ public final class DomainEnums {
     }
 
     public enum ExamSessionStatus {
-        NOT_OPENED,
+        NOT_OPEN,
         IN_PROGRESS,
-        ENDED,
+        FINISHED,
         CANCELLED
     }
 
