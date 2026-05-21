@@ -5,6 +5,7 @@ import com.htto.backend.domain.DomainEnums.ResultPublishStatus;
 import com.htto.backend.dto.request.ExamCreateRequest;
 import com.htto.backend.dto.request.ExamQuestionCreateRequest;
 import com.htto.backend.dto.request.ExamUpdateRequest;
+import com.htto.backend.dto.request.GenerateRandomQuestionsRequest;
 import com.htto.backend.dto.response.ExamResponse;
 import com.htto.backend.service.ExamService;
 import jakarta.validation.Valid;
@@ -110,6 +111,15 @@ public class ExamController {
             Authentication authentication
     ) {
         examService.removeQuestion(id, questionId, authentication.getName());
+    }
+
+    @PostMapping("/{id}/generate-random-questions")
+    public ExamResponse generateRandomQuestions(
+            @PathVariable String id,
+            @Valid @RequestBody GenerateRandomQuestionsRequest request,
+            Authentication authentication
+    ) {
+        return examService.generateRandomQuestions(id, request, authentication.getName());
     }
 
     @PatchMapping("/{id}/publish")

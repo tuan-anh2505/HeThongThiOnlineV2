@@ -4,10 +4,12 @@ import com.htto.backend.domain.Account;
 import com.htto.backend.domain.ClassSubjectTeacher;
 import com.htto.backend.domain.DomainEnums.AssignmentStatus;
 import com.htto.backend.domain.DomainEnums.ClassStatus;
+import com.htto.backend.domain.DomainEnums.Difficulty;
 import com.htto.backend.domain.DomainEnums.ExamStatus;
 import com.htto.backend.domain.DomainEnums.ProfileStatus;
 import com.htto.backend.domain.DomainEnums.QuestionBankStatus;
 import com.htto.backend.domain.DomainEnums.QuestionStatus;
+import com.htto.backend.domain.DomainEnums.QuestionType;
 import com.htto.backend.domain.DomainEnums.ResultPublishStatus;
 import com.htto.backend.domain.DomainEnums.SelectionMode;
 import com.htto.backend.domain.DomainEnums.SubjectStatus;
@@ -25,6 +27,8 @@ import com.htto.backend.domain.embedded.QuestionSelectionConfig;
 import com.htto.backend.dto.request.ExamCreateRequest;
 import com.htto.backend.dto.request.ExamQuestionCreateRequest;
 import com.htto.backend.dto.request.ExamUpdateRequest;
+import com.htto.backend.dto.request.GenerateRandomQuestionsRequest;
+import com.htto.backend.dto.request.RandomQuestionConfigRequest;
 import com.htto.backend.dto.response.AccountResponse;
 import com.htto.backend.dto.response.ClassResponse;
 import com.htto.backend.dto.response.ExamQuestionResponse;
@@ -45,7 +49,9 @@ import com.htto.backend.repository.SubmissionRepository;
 import com.htto.backend.repository.TeacherProfileRepository;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -305,6 +311,83 @@ public class ExamService {
         syncExamQuestions(exam);
     }
 
+    public ExamResponse generateRandomQuestions(
+            String id,
+            GenerateRandomQuestionsRequest request,
+            String username
+    ) {
+        validateRandomRequest(request);
+        Exam exam = getExamOrThrow(id);
+        ensureCanManageExam(getCurrentAccount(username), exam);
+        ensureNoSubmissions(exam.getId());
+        ensureQuestionMutableStatus(exam);
+
+        QuestionBank questionBank = getActiveQuestionBank(exam.getQuestionBankId());
+        if (!questionBank.getTeacherId().equals(exam.getTeacherId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Exam question bank does not belong to teacher");
+        }
+
+        List<Question> selectedQuestions = new ArrayList<>();
+        Set<String> selectedQuestionIds = new LinkedHashSet<>();
+        Map<QuestionType, Integer> quantityByType = new HashMap<>();
+        Map<Difficulty, Integer> quantityByDifficulty = new HashMap<>();
+
+        for (int i = 0; i < request.configs().size(); i++) {
+            RandomQuestionConfigRequest config = request.configs().get(i);
+            int quantity = validateRandomQuantity(config, i + 1);
+            List<Question> candidates = findRandomQuestionCandidates(exam, config, selectedQuestionIds);
+            if (candidates.size() < quantity) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Not enough questions for random config #" + (i + 1)
+                                + ". Required " + quantity
+                                + ", available " + candidates.size()
+                                + ", filters: " + describeRandomConfig(config)
+                );
+            }
+
+            Collections.shuffle(candidates);
+            List<Question> pickedQuestions = candidates.stream()
+                    .limit(quantity)
+                    .toList();
+            pickedQuestions.forEach(question -> {
+                selectedQuestions.add(question);
+                selectedQuestionIds.add(question.getId());
+            });
+
+            if (config.type() != null) {
+                quantityByType.merge(config.type(), quantity, Integer::sum);
+            }
+            if (config.difficulty() != null) {
+                quantityByDifficulty.merge(config.difficulty(), quantity, Integer::sum);
+            }
+        }
+
+        List<ExamQuestion> existingQuestions = loadOrMigrateExamQuestions(exam);
+        if (!existingQuestions.isEmpty()) {
+            examQuestionRepository.deleteAll(existingQuestions);
+        }
+
+        List<ExamQuestion> examQuestions = new ArrayList<>();
+        for (int i = 0; i < selectedQuestions.size(); i++) {
+            Question question = selectedQuestions.get(i);
+            ExamQuestion examQuestion = new ExamQuestion();
+            examQuestion.setExamId(exam.getId());
+            examQuestion.setQuestionId(question.getId());
+            examQuestion.setScore(question.getScore());
+            examQuestion.setOrderIndex(i + 1);
+            examQuestions.add(examQuestion);
+        }
+        examQuestionRepository.saveAll(examQuestions);
+
+        return toResponse(syncExamQuestions(
+                exam,
+                SelectionMode.RANDOM,
+                quantityByType,
+                quantityByDifficulty
+        ));
+    }
+
     public ExamResponse publishExam(String id, String username) {
         Exam exam = getExamOrThrow(id);
         ensureCanManageExam(getCurrentAccount(username), exam);
@@ -333,6 +416,74 @@ public class ExamService {
         ensureCanManageExam(getCurrentAccount(username), exam);
         exam.setStatus(ExamStatus.CANCELLED);
         return toResponse(examRepository.save(exam));
+    }
+
+    private void validateRandomRequest(GenerateRandomQuestionsRequest request) {
+        if (request == null || request.configs() == null || request.configs().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Random question configs are required");
+        }
+    }
+
+    private int validateRandomQuantity(RandomQuestionConfigRequest config, int configIndex) {
+        if (config == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Random question config #" + configIndex + " is required"
+            );
+        }
+        if (config.quantity() == null || config.quantity() <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Random question config #" + configIndex + " quantity must be greater than 0"
+            );
+        }
+        return config.quantity();
+    }
+
+    private List<Question> findRandomQuestionCandidates(
+            Exam exam,
+            RandomQuestionConfigRequest config,
+            Set<String> excludedQuestionIds
+    ) {
+        Query query = new Query();
+        List<Criteria> criteria = new ArrayList<>();
+        criteria.add(Criteria.where("questionBankId").is(exam.getQuestionBankId()));
+        criteria.add(Criteria.where("status").is(QuestionStatus.ACTIVE));
+        if (config.type() != null) {
+            criteria.add(Criteria.where("type").is(config.type()));
+        }
+        if (config.difficulty() != null) {
+            criteria.add(Criteria.where("difficulty").is(config.difficulty()));
+        }
+        if (StringUtils.hasText(config.topic())) {
+            Pattern topicPattern = Pattern.compile(
+                    "^" + Pattern.quote(config.topic().trim()) + "$",
+                    Pattern.CASE_INSENSITIVE
+            );
+            criteria.add(Criteria.where("topic").regex(topicPattern));
+        }
+        if (!excludedQuestionIds.isEmpty()) {
+            criteria.add(Criteria.where("_id").nin(excludedQuestionIds));
+        }
+        query.addCriteria(new Criteria().andOperator(criteria.toArray(Criteria[]::new)));
+        return mongoTemplate.find(query, Question.class);
+    }
+
+    private String describeRandomConfig(RandomQuestionConfigRequest config) {
+        List<String> parts = new ArrayList<>();
+        if (config.type() != null) {
+            parts.add("type=" + config.type());
+        }
+        if (config.difficulty() != null) {
+            parts.add("difficulty=" + config.difficulty());
+        }
+        if (StringUtils.hasText(config.topic())) {
+            parts.add("topic=" + config.topic().trim());
+        }
+        if (parts.isEmpty()) {
+            return "all active questions";
+        }
+        return String.join(", ", parts);
     }
 
     private void validateCreatePayload(ExamCreateRequest request) {
@@ -521,10 +672,28 @@ public class ExamService {
     }
 
     private QuestionSelectionConfig newSelectionConfig(int totalQuestions, BigDecimal totalScore) {
+        return newSelectionConfig(
+                SelectionMode.MANUAL,
+                totalQuestions,
+                totalScore,
+                Map.of(),
+                Map.of()
+        );
+    }
+
+    private QuestionSelectionConfig newSelectionConfig(
+            SelectionMode selectionMode,
+            int totalQuestions,
+            BigDecimal totalScore,
+            Map<QuestionType, Integer> quantityByType,
+            Map<Difficulty, Integer> quantityByDifficulty
+    ) {
         QuestionSelectionConfig selectionConfig = new QuestionSelectionConfig();
-        selectionConfig.setSelectionMode(SelectionMode.MANUAL);
+        selectionConfig.setSelectionMode(selectionMode);
         selectionConfig.setTotalQuestions(totalQuestions);
         selectionConfig.setTotalScore(totalScore);
+        selectionConfig.setQuantityByType(new HashMap<>(quantityByType));
+        selectionConfig.setQuantityByDifficulty(new HashMap<>(quantityByDifficulty));
         return selectionConfig;
     }
 
@@ -563,6 +732,15 @@ public class ExamService {
     }
 
     private Exam syncExamQuestions(Exam exam) {
+        return syncExamQuestions(exam, SelectionMode.MANUAL, Map.of(), Map.of());
+    }
+
+    private Exam syncExamQuestions(
+            Exam exam,
+            SelectionMode selectionMode,
+            Map<QuestionType, Integer> quantityByType,
+            Map<Difficulty, Integer> quantityByDifficulty
+    ) {
         List<ExamQuestion> examQuestions = examQuestionRepository.findByExamIdOrderByOrderIndexAsc(exam.getId());
         List<ExamQuestion> normalized = new ArrayList<>();
         BigDecimal totalScore = BigDecimal.ZERO;
@@ -592,7 +770,13 @@ public class ExamService {
 
         exam.setQuestionRefs(refs);
         exam.setTotalScore(totalScore);
-        exam.setSelectionConfig(newSelectionConfig(refs.size(), totalScore));
+        exam.setSelectionConfig(newSelectionConfig(
+                selectionMode,
+                refs.size(),
+                totalScore,
+                quantityByType,
+                quantityByDifficulty
+        ));
         return examRepository.save(exam);
     }
 
