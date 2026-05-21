@@ -10,6 +10,8 @@ public interface ExamAttemptRepository extends MongoRepository<ExamAttempt, Stri
 
     List<ExamAttempt> findByExamIdAndStudentIdOrderByAttemptNumberAsc(String examId, String studentId);
 
+    List<ExamAttempt> findByStudentId(String studentId);
+
     Optional<ExamAttempt> findByIdAndStudentId(String id, String studentId);
 
     Optional<ExamAttempt> findFirstByExamIdAndStudentIdAndStatusOrderByAttemptNumberDesc(
