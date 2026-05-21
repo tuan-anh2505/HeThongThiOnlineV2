@@ -3,9 +3,11 @@ package com.htto.backend.service;
 import com.htto.backend.domain.Account;
 import com.htto.backend.domain.ClassStudent;
 import com.htto.backend.domain.DomainEnums.EnrollmentStatus;
+import com.htto.backend.domain.DomainEnums.ExamAttemptStatus;
 import com.htto.backend.domain.DomainEnums.ExamSessionStatus;
 import com.htto.backend.domain.DomainEnums.ExamStatus;
 import com.htto.backend.domain.Exam;
+import com.htto.backend.domain.ExamAttempt;
 import com.htto.backend.domain.ExamQuestion;
 import com.htto.backend.domain.ExamSession;
 import com.htto.backend.domain.Question;
@@ -13,13 +15,13 @@ import com.htto.backend.domain.Role;
 import com.htto.backend.domain.SchoolClass;
 import com.htto.backend.domain.StudentProfile;
 import com.htto.backend.domain.Subject;
-import com.htto.backend.domain.Submission;
 import com.htto.backend.domain.embedded.ExamQuestionRef;
 import com.htto.backend.dto.response.QuestionStudentResponse;
 import com.htto.backend.dto.response.StudentExamDetailResponse;
 import com.htto.backend.dto.response.StudentExamListResponse;
 import com.htto.backend.repository.AccountRepository;
 import com.htto.backend.repository.ClassStudentRepository;
+import com.htto.backend.repository.ExamAttemptRepository;
 import com.htto.backend.repository.ExamQuestionRepository;
 import com.htto.backend.repository.ExamRepository;
 import com.htto.backend.repository.ExamSessionRepository;
@@ -27,7 +29,6 @@ import com.htto.backend.repository.QuestionRepository;
 import com.htto.backend.repository.SchoolClassRepository;
 import com.htto.backend.repository.StudentProfileRepository;
 import com.htto.backend.repository.SubjectRepository;
-import com.htto.backend.repository.SubmissionRepository;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -54,9 +55,9 @@ public class StudentExamService {
     private final SubjectRepository subjectRepository;
     private final ExamRepository examRepository;
     private final ExamSessionRepository examSessionRepository;
+    private final ExamAttemptRepository examAttemptRepository;
     private final ExamQuestionRepository examQuestionRepository;
     private final QuestionRepository questionRepository;
-    private final SubmissionRepository submissionRepository;
     private final MongoTemplate mongoTemplate;
 
     public StudentExamService(
@@ -67,9 +68,9 @@ public class StudentExamService {
             SubjectRepository subjectRepository,
             ExamRepository examRepository,
             ExamSessionRepository examSessionRepository,
+            ExamAttemptRepository examAttemptRepository,
             ExamQuestionRepository examQuestionRepository,
             QuestionRepository questionRepository,
-            SubmissionRepository submissionRepository,
             MongoTemplate mongoTemplate
     ) {
         this.accountRepository = accountRepository;
@@ -79,9 +80,9 @@ public class StudentExamService {
         this.subjectRepository = subjectRepository;
         this.examRepository = examRepository;
         this.examSessionRepository = examSessionRepository;
+        this.examAttemptRepository = examAttemptRepository;
         this.examQuestionRepository = examQuestionRepository;
         this.questionRepository = questionRepository;
-        this.submissionRepository = submissionRepository;
         this.mongoTemplate = mongoTemplate;
     }
 
@@ -254,17 +255,31 @@ public class StudentExamService {
     }
 
     private SubmissionSummary getSubmissionSummary(String examId, String studentId) {
-        List<Submission> submissions = submissionRepository.findByExamIdAndStudentId(examId, studentId);
-        if (submissions.isEmpty()) {
+        List<ExamAttempt> attempts = examAttemptRepository.findByExamIdAndStudentIdOrderByAttemptNumberAsc(
+                examId,
+                studentId
+        );
+        if (attempts.isEmpty()) {
             return new SubmissionSummary("NOT_STARTED", 0);
         }
 
-        Submission latest = submissions.stream()
-                .max(Comparator.comparingInt(Submission::getAttemptNumber))
+        Instant now = Instant.now();
+        attempts.stream()
+                .filter(attempt -> attempt.getStatus() == ExamAttemptStatus.IN_PROGRESS)
+                .filter(attempt -> attempt.getDeadline() != null && !now.isBefore(attempt.getDeadline()))
+                .forEach(attempt -> {
+                    attempt.setStatus(ExamAttemptStatus.EXPIRED);
+                    examAttemptRepository.save(attempt);
+                });
+
+        ExamAttempt latest = attempts.stream()
+                .max(Comparator.comparingInt(ExamAttempt::getAttemptNumber))
                 .orElse(null);
         return new SubmissionSummary(
                 latest == null ? "NOT_STARTED" : latest.getStatus().name(),
-                submissions.size()
+                (int) attempts.stream()
+                        .filter(attempt -> attempt.getStatus() != ExamAttemptStatus.CANCELLED)
+                        .count()
         );
     }
 

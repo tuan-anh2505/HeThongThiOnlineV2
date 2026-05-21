@@ -87,6 +87,13 @@ public final class DomainEnums {
         CANCELLED
     }
 
+    public enum ExamAttemptStatus {
+        IN_PROGRESS,
+        SUBMITTED,
+        EXPIRED,
+        CANCELLED
+    }
+
     public enum GradingStatus {
         CORRECT,
         INCORRECT,
