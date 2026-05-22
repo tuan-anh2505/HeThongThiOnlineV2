@@ -2,6 +2,14 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./components/ProtectedRoute.jsx";
 import { RoleLayout } from "./layouts/RoleLayout.jsx";
 import { AdminDashboard } from "./pages/AdminDashboard.jsx";
+import { AdminAccountsPage } from "./pages/admin/AdminAccountsPage.jsx";
+import { AdminAssignmentsPage } from "./pages/admin/AdminAssignmentsPage.jsx";
+import { AdminClassesPage } from "./pages/admin/AdminClassesPage.jsx";
+import { AdminClassStudentsPage } from "./pages/admin/AdminClassStudentsPage.jsx";
+import { AdminLogsPage } from "./pages/admin/AdminLogsPage.jsx";
+import { AdminQuestionBanksPage } from "./pages/admin/AdminQuestionBanksPage.jsx";
+import { AdminStatisticsPage } from "./pages/admin/AdminStatisticsPage.jsx";
+import { AdminSubjectsPage } from "./pages/admin/AdminSubjectsPage.jsx";
 import { ForbiddenPage } from "./pages/ForbiddenPage.jsx";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
@@ -50,6 +58,14 @@ export default function App() {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="accounts" element={<AdminAccountsPage />} />
+        <Route path="classes" element={<AdminClassesPage />} />
+        <Route path="class-students" element={<AdminClassStudentsPage />} />
+        <Route path="subjects" element={<AdminSubjectsPage />} />
+        <Route path="assignments" element={<AdminAssignmentsPage />} />
+        <Route path="question-banks" element={<AdminQuestionBanksPage />} />
+        <Route path="logs" element={<AdminLogsPage />} />
+        <Route path="statistics" element={<AdminStatisticsPage />} />
       </Route>
 
       <Route
