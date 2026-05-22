@@ -3,12 +3,17 @@ import { ProtectedRoute } from "./components/ProtectedRoute.jsx";
 import { RoleLayout } from "./layouts/RoleLayout.jsx";
 import { AdminDashboard } from "./pages/AdminDashboard.jsx";
 import { ForbiddenPage } from "./pages/ForbiddenPage.jsx";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
 import { NotFoundPage } from "./pages/NotFoundPage.jsx";
+import { ProfilePage } from "./pages/ProfilePage.jsx";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage.jsx";
 import { StudentDashboard } from "./pages/StudentDashboard.jsx";
 import { TeacherDashboard } from "./pages/TeacherDashboard.jsx";
-import { getHomePathForRole } from "./services/authService.js";
 import { useAuth } from "./context/AuthContext.jsx";
+import { getHomePathForRole } from "./services/authService.js";
+
+const ALL_ROLES = ["ADMIN", "TEACHER", "STUDENT"];
 
 function HomeRedirect() {
   const { user } = useAuth();
@@ -20,7 +25,20 @@ export default function App() {
     <Routes>
       <Route path="/" element={<HomeRedirect />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/forbidden" element={<ForbiddenPage />} />
+
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute allowedRoles={ALL_ROLES}>
+            <RoleLayout title="Hồ sơ cá nhân" />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<ProfilePage />} />
+      </Route>
 
       <Route
         path="/admin"

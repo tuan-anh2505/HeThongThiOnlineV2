@@ -1,15 +1,24 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { getHomePathForRole } from "../services/authService.js";
 
-export function RoleLayout({ roleName }) {
+const ROLE_LABELS = {
+  ADMIN: "Admin",
+  TEACHER: "Giảng viên",
+  STUDENT: "Sinh viên"
+};
+
+export function RoleLayout({ roleName, title }) {
   const { user, logout } = useAuth();
+  const displayRoleName = roleName || ROLE_LABELS[user?.role] || "Người dùng";
+  const heading = title || `${displayRoleName} Dashboard`;
 
   return (
     <div className="app-shell">
       <header className="topbar">
         <div>
           <p className="eyebrow">Hệ thống thi online</p>
-          <h1>{roleName} Dashboard</h1>
+          <h1>{heading}</h1>
         </div>
         <div className="user-area">
           <span>{user?.fullName || user?.username}</span>
@@ -21,7 +30,8 @@ export function RoleLayout({ roleName }) {
 
       <div className="content-frame">
         <aside className="sidebar">
-          <NavLink to="dashboard">Tổng quan</NavLink>
+          <NavLink to={getHomePathForRole(user?.role)}>Tổng quan</NavLink>
+          <NavLink to="/profile">Hồ sơ</NavLink>
         </aside>
         <main className="main-content">
           <Outlet />

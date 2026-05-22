@@ -71,5 +71,5 @@ function resolveErrorMessage(body, fallback) {
   if (typeof body === "string") {
     return body;
   }
-  return body.message || body.error || fallback || "Yêu cầu không thành công";
+  return body.message || body.detail || body.error || fallback || "Yêu cầu không thành công";
 }

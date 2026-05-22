@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getHomePathForRole } from "../services/authService.js";
 
@@ -74,6 +74,10 @@ export function LoginPage() {
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>
         </form>
+
+        <div className="form-links">
+          <Link to="/forgot-password">Quên mật khẩu?</Link>
+        </div>
       </section>
     </main>
   );

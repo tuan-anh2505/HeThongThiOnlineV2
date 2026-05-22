@@ -14,6 +14,27 @@ export async function fetchCurrentUser() {
   });
 }
 
+export async function forgotPassword(email) {
+  return apiRequest("/api/auth/forgot-password", {
+    method: "POST",
+    skipAuth: true,
+    body: { email }
+  });
+}
+
+export async function resetPassword(email, otp, newPassword, confirmPassword) {
+  return apiRequest("/api/auth/reset-password", {
+    method: "POST",
+    skipAuth: true,
+    body: {
+      email,
+      otp,
+      newPassword,
+      confirmPassword
+    }
+  });
+}
+
 export function getHomePathForRole(role) {
   switch (role) {
     case "ADMIN":
