@@ -6,11 +6,23 @@ spring:
     name: he-thong-thi-online-v2
   data:
     mongodb:
-      uri: "mongodb+srv://zt42505:25052005nta@cluster0.vckbh4c.mongodb.net/HeThongThiOnline?retryWrites=true&w=majority&appName=Cluster0"
+      uri: ${MONGODB_URI}
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
 
 app:
   jwt:
-    secret: "ahsdlkjashldkhdlakshdkwaswadsdwadasdsadhjkwahdasdwad"
+    secret: ${JWT_SECRET}
     expiration: ${JWT_EXPIRATION:86400000}
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:5173}

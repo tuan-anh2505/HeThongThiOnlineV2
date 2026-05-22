@@ -1,11 +1,15 @@
 package com.htto.backend.controller;
 
 import com.htto.backend.domain.Account;
+import com.htto.backend.dto.request.ForgotPasswordRequest;
 import com.htto.backend.dto.request.LoginRequest;
+import com.htto.backend.dto.request.ResetPasswordRequest;
 import com.htto.backend.dto.response.AccountResponse;
 import com.htto.backend.dto.response.LoginResponse;
+import com.htto.backend.dto.response.MessageResponse;
 import com.htto.backend.security.JwtService;
 import com.htto.backend.service.AccountService;
+import com.htto.backend.service.PasswordService;
 import com.htto.backend.service.SystemLogService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -29,17 +33,20 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final AccountService accountService;
+    private final PasswordService passwordService;
     private final SystemLogService systemLogService;
 
     public AuthController(
             AuthenticationManager authenticationManager,
             JwtService jwtService,
             AccountService accountService,
+            PasswordService passwordService,
             SystemLogService systemLogService
     ) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.accountService = accountService;
+        this.passwordService = passwordService;
         this.systemLogService = systemLogService;
     }
 
@@ -65,6 +72,16 @@ public class AuthController {
                 jwtService.getExpirationMillis(),
                 AccountResponse.from(account)
         );
+    }
+
+    @PostMapping("/forgot-password")
+    public MessageResponse forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        return new MessageResponse(passwordService.forgotPassword(request));
+    }
+
+    @PostMapping("/reset-password")
+    public MessageResponse resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        return new MessageResponse(passwordService.resetPassword(request));
     }
 
     @GetMapping("/me")
