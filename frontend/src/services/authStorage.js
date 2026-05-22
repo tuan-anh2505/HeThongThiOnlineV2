@@ -1,14 +1,20 @@
 const AUTH_STORAGE_KEY = "online_exam_auth";
 
+function clearLegacyLocalStorage() {
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+}
+
 export function getStoredAuth() {
-  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+  clearLegacyLocalStorage();
+
+  const raw = sessionStorage.getItem(AUTH_STORAGE_KEY);
   if (!raw) {
     return null;
   }
 
   try {
     const parsed = JSON.parse(raw);
-    if (!parsed?.token || !parsed?.user) {
+    if (!parsed?.token) {
       clearStoredAuth();
       return null;
     }
@@ -20,11 +26,13 @@ export function getStoredAuth() {
 }
 
 export function saveStoredAuth(auth) {
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
+  clearLegacyLocalStorage();
+  sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
 }
 
 export function clearStoredAuth() {
-  localStorage.removeItem(AUTH_STORAGE_KEY);
+  sessionStorage.removeItem(AUTH_STORAGE_KEY);
+  clearLegacyLocalStorage();
 }
 
 export function getStoredToken() {

@@ -40,7 +40,7 @@ export async function apiRequest(path, options = {}) {
 
   const responseBody = await parseResponseBody(response);
 
-  if (response.status === 401) {
+  if (!skipAuth && (response.status === 401 || response.status === 403)) {
     clearStoredAuth();
     unauthorizedHandler?.();
   }

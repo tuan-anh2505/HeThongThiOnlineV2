@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { changePassword, fetchProfile } from "../services/profileService.js";
 
 export function ProfilePage() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const changePasswordRef = useRef(null);
   const [profile, setProfile] = useState(null);
   const [profileError, setProfileError] = useState("");
   const [profileLoading, setProfileLoading] = useState(true);
@@ -43,6 +46,12 @@ export function ProfilePage() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (searchParams.get("tab") === "change-password") {
+      changePasswordRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [searchParams]);
 
   const account = profile?.account || user;
 
@@ -115,25 +124,29 @@ export function ProfilePage() {
               </div>
               <div>
                 <dt>Tên đăng nhập</dt>
-                <dd>{account?.username}</dd>
+                <dd>{account?.username || "Chưa cập nhật"}</dd>
               </div>
               <div>
                 <dt>Email</dt>
                 <dd>{account?.email || "Chưa cập nhật"}</dd>
               </div>
               <div>
-                <dt>Vai trò</dt>
-                <dd>{account?.role}</dd>
+                <dt>Số điện thoại</dt>
+                <dd>{account?.phone || "Chưa cập nhật"}</dd>
               </div>
               <div>
-                <dt>Trạng thái</dt>
-                <dd>{account?.status}</dd>
+                <dt>Vai trò</dt>
+                <dd>{account?.role || "Chưa cập nhật"}</dd>
+              </div>
+              <div>
+                <dt>Trạng thái tài khoản</dt>
+                <dd>{account?.status || "Chưa cập nhật"}</dd>
               </div>
             </dl>
           ) : null}
         </article>
 
-        <article className="profile-card">
+        <article className="profile-card" ref={changePasswordRef} id="change-password">
           <h3>Đổi mật khẩu</h3>
           <form className="login-form" onSubmit={handleSubmit}>
             <label>

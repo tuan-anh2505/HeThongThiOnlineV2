@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const ROLE_LABELS = {
@@ -17,24 +18,42 @@ const NAV_ITEMS = {
     { to: "/admin/assignments", label: "Phân công" },
     { to: "/admin/question-banks", label: "Ngân hàng câu hỏi" },
     { to: "/admin/logs", label: "Nhật ký hệ thống" },
-    { to: "/admin/statistics", label: "Thống kê" },
-    { to: "/profile", label: "Hồ sơ" }
+    { to: "/admin/statistics", label: "Thống kê" }
   ],
-  TEACHER: [
-    { to: "/teacher/dashboard", label: "Tổng quan" },
-    { to: "/profile", label: "Hồ sơ" }
-  ],
-  STUDENT: [
-    { to: "/student/dashboard", label: "Tổng quan" },
-    { to: "/profile", label: "Hồ sơ" }
-  ]
+  TEACHER: [{ to: "/teacher/dashboard", label: "Tổng quan" }],
+  STUDENT: [{ to: "/student/dashboard", label: "Tổng quan" }]
 };
+
+function getInitial(user) {
+  const source = user?.fullName || user?.username || user?.email || "U";
+  return source.trim().charAt(0).toUpperCase();
+}
+
+function getAvatarUrl(user) {
+  return user?.avatarUrl || user?.profileImageUrl || user?.imageUrl || "";
+}
 
 export function RoleLayout({ roleName, title }) {
   const { user, logout } = useAuth();
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const menuRef = useRef(null);
   const displayRoleName = roleName || ROLE_LABELS[user?.role] || "Người dùng";
   const heading = title || `${displayRoleName} Dashboard`;
   const navItems = NAV_ITEMS[user?.role] ?? [];
+  const avatarUrl = getAvatarUrl(user);
+
+  useEffect(() => {
+    function handlePointerDown(event) {
+      if (!menuRef.current?.contains(event.target)) {
+        setProfileMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, []);
+
+  const closeProfileMenu = () => setProfileMenuOpen(false);
 
   return (
     <div className="app-shell">
@@ -45,6 +64,43 @@ export function RoleLayout({ roleName, title }) {
         </div>
         <div className="user-area">
           <span>{user?.fullName || user?.username}</span>
+          <div className="profile-menu" ref={menuRef}>
+            <button
+              className="avatar-button"
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={profileMenuOpen}
+              onClick={() => setProfileMenuOpen((current) => !current)}
+            >
+              {avatarUrl ? <img src={avatarUrl} alt="Ảnh đại diện" /> : <span>{getInitial(user)}</span>}
+            </button>
+
+            {profileMenuOpen ? (
+              <div className="profile-dropdown" role="menu">
+                <div className="profile-dropdown-header">
+                  <strong>{user?.fullName || user?.username}</strong>
+                  <span>{user?.email || user?.username}</span>
+                  <small>{user?.role}</small>
+                </div>
+                <Link to="/profile" role="menuitem" onClick={closeProfileMenu}>
+                  Hồ sơ tài khoản
+                </Link>
+                <Link to="/profile?tab=change-password" role="menuitem" onClick={closeProfileMenu}>
+                  Đổi mật khẩu
+                </Link>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    closeProfileMenu();
+                    logout();
+                  }}
+                >
+                  Đăng xuất
+                </button>
+              </div>
+            ) : null}
+          </div>
           <button className="secondary-button" type="button" onClick={logout}>
             Đăng xuất
           </button>

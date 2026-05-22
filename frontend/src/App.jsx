@@ -24,7 +24,15 @@ import { getHomePathForRole } from "./services/authService.js";
 const ALL_ROLES = ["ADMIN", "TEACHER", "STUDENT"];
 
 function HomeRedirect() {
-  const { user } = useAuth();
+  const { authLoading, user } = useAuth();
+  if (authLoading) {
+    return (
+      <main className="state-page">
+        <h1>Đang kiểm tra đăng nhập</h1>
+        <p>Vui lòng chờ trong giây lát.</p>
+      </main>
+    );
+  }
   return <Navigate to={user ? getHomePathForRole(user.role) : "/login"} replace />;
 }
 
