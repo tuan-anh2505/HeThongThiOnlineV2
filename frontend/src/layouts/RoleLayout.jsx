@@ -30,7 +30,12 @@ const NAV_ITEMS = {
     { to: "/teacher/attempts", label: "Bài làm" },
     { to: "/teacher/statistics", label: "Thống kê điểm" }
   ],
-  STUDENT: [{ to: "/student/dashboard", label: "Tổng quan" }]
+  STUDENT: [
+    { to: "/student/dashboard", label: "Tổng quan" },
+    { to: "/student/subjects", label: "Môn thi" },
+    { to: "/student/exams", label: "Bài thi được giao" },
+    { to: "/student/results", label: "Kết quả" }
+  ]
 };
 
 function getInitial(user) {

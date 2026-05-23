@@ -17,6 +17,13 @@ import { NotFoundPage } from "./pages/NotFoundPage.jsx";
 import { ProfilePage } from "./pages/ProfilePage.jsx";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage.jsx";
 import { StudentDashboard } from "./pages/StudentDashboard.jsx";
+import { StudentAttemptPage } from "./pages/student/StudentAttemptPage.jsx";
+import { StudentExamDetailPage } from "./pages/student/StudentExamDetailPage.jsx";
+import { StudentExamsPage } from "./pages/student/StudentExamsPage.jsx";
+import { StudentResultPage } from "./pages/student/StudentResultPage.jsx";
+import { StudentResultsPage } from "./pages/student/StudentResultsPage.jsx";
+import { StudentReviewPage } from "./pages/student/StudentReviewPage.jsx";
+import { StudentSubjectsPage } from "./pages/student/StudentSubjectsPage.jsx";
 import { TeacherDashboard } from "./pages/TeacherDashboard.jsx";
 import { TeacherAttemptDetailPage } from "./pages/teacher/TeacherAttemptDetailPage.jsx";
 import { TeacherAttemptsPage } from "./pages/teacher/TeacherAttemptsPage.jsx";
@@ -122,6 +129,13 @@ export default function App() {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<StudentDashboard />} />
+        <Route path="subjects" element={<StudentSubjectsPage />} />
+        <Route path="exams" element={<StudentExamsPage />} />
+        <Route path="exams/:examId" element={<StudentExamDetailPage />} />
+        <Route path="attempts/:attemptId" element={<StudentAttemptPage />} />
+        <Route path="attempts/:attemptId/result" element={<StudentResultPage />} />
+        <Route path="attempts/:attemptId/review" element={<StudentReviewPage />} />
+        <Route path="results" element={<StudentResultsPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />
