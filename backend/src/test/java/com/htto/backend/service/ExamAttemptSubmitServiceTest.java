@@ -16,7 +16,6 @@ import com.htto.backend.domain.ExamAttempt;
 import com.htto.backend.domain.Question;
 import com.htto.backend.domain.Role;
 import com.htto.backend.domain.StudentProfile;
-import com.htto.backend.domain.SystemLog;
 import com.htto.backend.domain.embedded.AnswerDefinition;
 import com.htto.backend.domain.embedded.AnswerOption;
 import com.htto.backend.domain.embedded.AttemptAnswerValue;
@@ -30,7 +29,6 @@ import com.htto.backend.repository.ExamAttemptRepository;
 import com.htto.backend.repository.ExamRepository;
 import com.htto.backend.repository.QuestionRepository;
 import com.htto.backend.repository.StudentProfileRepository;
-import com.htto.backend.repository.SystemLogRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -73,9 +71,6 @@ class ExamAttemptSubmitServiceTest {
     private StudentProfileRepository studentProfileRepository;
 
     @Mock
-    private SystemLogRepository systemLogRepository;
-
-    @Mock
     private SystemLogService systemLogService;
 
     private ExamAttemptSubmitService service;
@@ -89,7 +84,6 @@ class ExamAttemptSubmitServiceTest {
                 questionRepository,
                 accountRepository,
                 studentProfileRepository,
-                systemLogRepository,
                 systemLogService
         );
 
@@ -201,7 +195,13 @@ class ExamAttemptSubmitServiceTest {
         assertThat(attempt.getStatus()).isEqualTo(ExamAttemptStatus.EXPIRED);
         assertThat(attempt.getSubmittedAt()).isEqualTo(attempt.getDeadline());
         assertThat(answer.getStatus()).isEqualTo(AttemptAnswerStatus.CORRECT);
-        verify(systemLogRepository).save(any(SystemLog.class));
+        verify(systemLogService).log(
+                ACCOUNT_ID,
+                "AUTO_SUBMIT_ATTEMPT",
+                "EXAM_ATTEMPT",
+                ATTEMPT_ID,
+                "System auto-submitted expired attempt, examId=" + EXAM_ID
+        );
     }
 
     private ExamAttemptQuestionSnapshot multipleChoiceSnapshot() {

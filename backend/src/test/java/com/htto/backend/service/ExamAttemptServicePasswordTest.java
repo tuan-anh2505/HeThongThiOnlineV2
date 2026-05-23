@@ -29,7 +29,6 @@ import com.htto.backend.repository.ExamRepository;
 import com.htto.backend.repository.ExamSessionRepository;
 import com.htto.backend.repository.QuestionRepository;
 import com.htto.backend.repository.StudentProfileRepository;
-import com.htto.backend.repository.SystemLogRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -79,9 +78,6 @@ class ExamAttemptServicePasswordTest {
     private ClassStudentRepository classStudentRepository;
 
     @Mock
-    private SystemLogRepository systemLogRepository;
-
-    @Mock
     private ExamAttemptSubmitService examAttemptSubmitService;
 
     @Mock
@@ -102,7 +98,6 @@ class ExamAttemptServicePasswordTest {
                 accountRepository,
                 studentProfileRepository,
                 classStudentRepository,
-                systemLogRepository,
                 passwordEncoder,
                 examAttemptSubmitService,
                 systemLogService
@@ -194,7 +189,13 @@ class ExamAttemptServicePasswordTest {
         assertThatThrownBy(() -> service.startExam(EXAM_ID, new StartExamRequest("wrong"), USERNAME))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Mật khẩu bài thi không đúng");
-        verify(systemLogRepository).save(any());
+        verify(systemLogService).log(
+                ACCOUNT_ID,
+                "WRONG_EXAM_PASSWORD",
+                "EXAM",
+                EXAM_ID,
+                "Student entered wrong exam password, examId=" + EXAM_ID
+        );
     }
 
     @Test

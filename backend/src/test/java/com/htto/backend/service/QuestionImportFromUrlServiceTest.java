@@ -17,7 +17,6 @@ import com.htto.backend.dto.response.QuestionImportErrorResponse;
 import com.htto.backend.dto.response.QuestionImportResponse;
 import com.htto.backend.repository.AccountRepository;
 import com.htto.backend.repository.QuestionImportHistoryRepository;
-import com.htto.backend.repository.SystemLogRepository;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -49,7 +48,7 @@ class QuestionImportFromUrlServiceTest {
     private QuestionImportHistoryRepository importHistoryRepository;
 
     @Mock
-    private SystemLogRepository systemLogRepository;
+    private SystemLogService systemLogService;
 
     private QuestionImportFromUrlService service;
 
@@ -60,7 +59,7 @@ class QuestionImportFromUrlServiceTest {
                 urlContentFetchService,
                 accountRepository,
                 importHistoryRepository,
-                systemLogRepository
+                systemLogService
         );
         Account account = new Account();
         account.setId("account-1");
@@ -98,7 +97,13 @@ class QuestionImportFromUrlServiceTest {
         assertThat(response.failedCount()).isZero();
         verify(questionImportService).validateImportAccess(BANK_ID, USERNAME);
         verify(importHistoryRepository).save(any());
-        verify(systemLogRepository).save(any());
+        verify(systemLogService).log(
+                eq("account-1"),
+                eq("IMPORT_QUESTIONS_FROM_URL"),
+                eq("QUESTION_BANK"),
+                eq(BANK_ID),
+                any()
+        );
     }
 
     @Test
@@ -120,7 +125,13 @@ class QuestionImportFromUrlServiceTest {
         assertThat(response.errors()).containsExactly("Cannot fetch URL content");
         verify(questionImportService, never()).importTextContent(any(), any(), any());
         verify(importHistoryRepository).save(any());
-        verify(systemLogRepository).save(any());
+        verify(systemLogService).log(
+                eq("account-1"),
+                eq("IMPORT_QUESTIONS_FROM_URL"),
+                eq("QUESTION_BANK"),
+                eq(BANK_ID),
+                any()
+        );
     }
 
     @Test
@@ -167,6 +178,6 @@ class QuestionImportFromUrlServiceTest {
 
         verify(urlContentFetchService, never()).fetch(any());
         verify(importHistoryRepository, never()).save(any());
-        verify(systemLogRepository, never()).save(any());
+        verify(systemLogService, never()).log(any(), any(), any(), any(), any());
     }
 }
