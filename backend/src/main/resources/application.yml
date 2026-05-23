@@ -6,7 +6,7 @@ spring:
     name: he-thong-thi-online-v2
   data:
     mongodb:
-      uri: mongodb+srv://zt42505:25052005nta@cluster0.vckbh4c.mongodb.net/HeThongThiOnline?retryWrites=true&w=majority&appName=Cluster0
+      uri: ${MONGODB_URI}
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
@@ -22,7 +22,7 @@ spring:
 
 app:
   jwt:
-    secret: "ahsdlkjashldkhdlakshdkwaswadsdwadasdsadhjkwahdasdwad"
+    secret: ${JWT_SECRET}
     expiration: ${JWT_EXPIRATION:86400000}
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
@@ -31,12 +31,15 @@ app:
     admin-username: ${SEED_ADMIN_USERNAME:admin}
     admin-email: ${SEED_ADMIN_EMAIL:admin@example.com}
     admin-password: ${SEED_ADMIN_PASSWORD:}
-    teacher-username: ${SEED_TEACHER_USERNAME:teacher}
-    teacher-email: ${SEED_TEACHER_EMAIL:teacher@example.com}
+    teacher-username: ${SEED_TEACHER_USERNAME:teacher01}
+    teacher-email: ${SEED_TEACHER_EMAIL:teacher01@example.com}
     teacher-password: ${SEED_TEACHER_PASSWORD:}
-    student-username: ${SEED_STUDENT_USERNAME:student}
-    student-email: ${SEED_STUDENT_EMAIL:student@example.com}
+    student-username: ${SEED_STUDENT_USERNAME:student01}
+    student-email: ${SEED_STUDENT_EMAIL:student01@example.com}
     student-password: ${SEED_STUDENT_PASSWORD:}
+    student2-username: ${SEED_STUDENT2_USERNAME:student02}
+    student2-email: ${SEED_STUDENT2_EMAIL:student02@example.com}
+    student2-password: ${SEED_STUDENT2_PASSWORD:}
   bootstrap-admin:
     enabled: ${BOOTSTRAP_ADMIN_ENABLED:false}
     username: ${BOOTSTRAP_ADMIN_USERNAME:admin}

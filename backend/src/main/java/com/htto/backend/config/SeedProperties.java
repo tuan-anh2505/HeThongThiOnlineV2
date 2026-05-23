@@ -13,6 +13,9 @@ public record SeedProperties(
         String teacherPassword,
         String studentUsername,
         String studentEmail,
-        String studentPassword
+        String studentPassword,
+        String student2Username,
+        String student2Email,
+        String student2Password
 ) {
 }

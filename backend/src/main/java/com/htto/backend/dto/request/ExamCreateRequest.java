@@ -1,15 +1,22 @@
 package com.htto.backend.dto.request;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 
 public record ExamCreateRequest(
+        @NotBlank
         String examName,
         String classId,
-        List<String> classIds,
+        List<@NotBlank String> classIds,
+        @NotBlank
         String subjectId,
+        @NotBlank
         String questionBankId,
         String teacherId,
+        @Min(1)
         Integer durationMinutes,
+        @Min(1)
         Integer maxAttempts,
         Boolean allowViewScore,
         Boolean allowReview,

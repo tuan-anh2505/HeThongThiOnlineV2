@@ -44,14 +44,6 @@ public class SystemLog extends AuditableDocument {
         this.accountId = accountId;
     }
 
-    public String getUserId() {
-        return accountId;
-    }
-
-    public void setUserId(String userId) {
-        this.accountId = userId;
-    }
-
     public String getAction() {
         return action;
     }
@@ -100,11 +92,4 @@ public class SystemLog extends AuditableDocument {
         this.description = description;
     }
 
-    public String getDetail() {
-        return description;
-    }
-
-    public void setDetail(String detail) {
-        this.description = detail;
-    }
 }

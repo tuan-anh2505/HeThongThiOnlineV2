@@ -33,7 +33,6 @@ public class SecurityConfig {
             "/api/auth/login",
             "/api/auth/forgot-password",
             "/api/auth/reset-password",
-            "/api/auth/refresh-token",
             "/actuator/health"
     };
 
@@ -57,12 +56,20 @@ public class SecurityConfig {
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.setStatus(HttpStatus.UNAUTHORIZED.value());
                             response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write("{\"message\":\"Unauthorized\"}");
+                            response.getWriter().write(errorJson(
+                                    HttpStatus.UNAUTHORIZED,
+                                    "Unauthorized",
+                                    request.getRequestURI()
+                            ));
                         })
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             response.setStatus(HttpStatus.FORBIDDEN.value());
                             response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write("{\"message\":\"Forbidden\"}");
+                            response.getWriter().write(errorJson(
+                                    HttpStatus.FORBIDDEN,
+                                    "Forbidden",
+                                    request.getRequestURI()
+                            ));
                         })
                 )
                 .authorizeHttpRequests(auth -> auth
@@ -119,5 +126,21 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    private String errorJson(HttpStatus status, String message, String path) {
+        return "{"
+                + "\"status\":" + status.value() + ","
+                + "\"error\":\"" + status.getReasonPhrase() + "\","
+                + "\"message\":\"" + message + "\","
+                + "\"path\":\"" + escapeJson(path) + "\""
+                + "}";
+    }
+
+    private String escapeJson(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

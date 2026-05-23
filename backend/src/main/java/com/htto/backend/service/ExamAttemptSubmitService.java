@@ -10,7 +10,6 @@ import com.htto.backend.domain.ExamAttempt;
 import com.htto.backend.domain.Question;
 import com.htto.backend.domain.Role;
 import com.htto.backend.domain.StudentProfile;
-import com.htto.backend.domain.SystemLog;
 import com.htto.backend.domain.embedded.AnswerDefinition;
 import com.htto.backend.domain.embedded.AnswerOption;
 import com.htto.backend.domain.embedded.AttemptAnswerValue;
@@ -26,7 +25,6 @@ import com.htto.backend.repository.ExamAttemptRepository;
 import com.htto.backend.repository.ExamRepository;
 import com.htto.backend.repository.QuestionRepository;
 import com.htto.backend.repository.StudentProfileRepository;
-import com.htto.backend.repository.SystemLogRepository;
 import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.time.Instant;
@@ -57,7 +55,6 @@ public class ExamAttemptSubmitService {
     private final QuestionRepository questionRepository;
     private final AccountRepository accountRepository;
     private final StudentProfileRepository studentProfileRepository;
-    private final SystemLogRepository systemLogRepository;
     private final SystemLogService systemLogService;
 
     public ExamAttemptSubmitService(
@@ -67,7 +64,6 @@ public class ExamAttemptSubmitService {
             QuestionRepository questionRepository,
             AccountRepository accountRepository,
             StudentProfileRepository studentProfileRepository,
-            SystemLogRepository systemLogRepository,
             SystemLogService systemLogService
     ) {
         this.examAttemptRepository = examAttemptRepository;
@@ -76,7 +72,6 @@ public class ExamAttemptSubmitService {
         this.questionRepository = questionRepository;
         this.accountRepository = accountRepository;
         this.studentProfileRepository = studentProfileRepository;
-        this.systemLogRepository = systemLogRepository;
         this.systemLogService = systemLogService;
     }
 
@@ -405,14 +400,13 @@ public class ExamAttemptSubmitService {
     }
 
     private void logAutoSubmit(ExamAttempt attempt, String userId) {
-        SystemLog log = new SystemLog();
-        log.setUserId(userId);
-        log.setAction("AUTO_SUBMIT_ATTEMPT");
-        log.setOccurredAt(Instant.now());
-        log.setTargetType("EXAM_ATTEMPT");
-        log.setTargetId(attempt.getId());
-        log.setDetail("System auto-submitted expired attempt, examId=" + attempt.getExamId());
-        systemLogRepository.save(log);
+        systemLogService.log(
+                userId,
+                "AUTO_SUBMIT_ATTEMPT",
+                "EXAM_ATTEMPT",
+                attempt.getId(),
+                "System auto-submitted expired attempt, examId=" + attempt.getExamId()
+        );
     }
 
     private ExamAttempt getOwnedAttempt(String attemptId, String studentId) {

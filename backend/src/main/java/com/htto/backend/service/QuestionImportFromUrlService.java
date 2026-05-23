@@ -3,14 +3,12 @@ package com.htto.backend.service;
 import com.htto.backend.domain.Account;
 import com.htto.backend.domain.DomainEnums.ImportSourceType;
 import com.htto.backend.domain.QuestionImportHistory;
-import com.htto.backend.domain.SystemLog;
 import com.htto.backend.dto.request.ImportQuestionsFromUrlRequest;
 import com.htto.backend.dto.response.ImportQuestionsResultResponse;
 import com.htto.backend.dto.response.QuestionImportErrorResponse;
 import com.htto.backend.dto.response.QuestionImportResponse;
 import com.htto.backend.repository.AccountRepository;
 import com.htto.backend.repository.QuestionImportHistoryRepository;
-import com.htto.backend.repository.SystemLogRepository;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -32,20 +30,20 @@ public class QuestionImportFromUrlService {
     private final UrlContentFetchService urlContentFetchService;
     private final AccountRepository accountRepository;
     private final QuestionImportHistoryRepository importHistoryRepository;
-    private final SystemLogRepository systemLogRepository;
+    private final SystemLogService systemLogService;
 
     public QuestionImportFromUrlService(
             QuestionImportService questionImportService,
             UrlContentFetchService urlContentFetchService,
             AccountRepository accountRepository,
             QuestionImportHistoryRepository importHistoryRepository,
-            SystemLogRepository systemLogRepository
+            SystemLogService systemLogService
     ) {
         this.questionImportService = questionImportService;
         this.urlContentFetchService = urlContentFetchService;
         this.accountRepository = accountRepository;
         this.importHistoryRepository = importHistoryRepository;
-        this.systemLogRepository = systemLogRepository;
+        this.systemLogService = systemLogService;
     }
 
     public ImportQuestionsResultResponse importFromUrl(
@@ -196,14 +194,13 @@ public class QuestionImportFromUrlService {
         history.setImportedAt(now);
         importHistoryRepository.save(history);
 
-        SystemLog log = new SystemLog();
-        log.setUserId(account.getId());
-        log.setAction(ACTION_IMPORT_FROM_URL);
-        log.setOccurredAt(now);
-        log.setTargetType(TARGET_QUESTION_BANK);
-        log.setTargetId(questionBankId);
-        log.setDetail(buildLogDetail(sourceUrl, sourceType, result));
-        systemLogRepository.save(log);
+        systemLogService.log(
+                account.getId(),
+                ACTION_IMPORT_FROM_URL,
+                TARGET_QUESTION_BANK,
+                questionBankId,
+                buildLogDetail(sourceUrl, sourceType, result)
+        );
     }
 
     private String buildLogDetail(

@@ -20,7 +20,6 @@ import com.htto.backend.domain.QuestionBank;
 import com.htto.backend.domain.Role;
 import com.htto.backend.domain.SchoolClass;
 import com.htto.backend.domain.Subject;
-import com.htto.backend.domain.SystemLog;
 import com.htto.backend.domain.TeacherProfile;
 import com.htto.backend.domain.embedded.ExamQuestionRef;
 import com.htto.backend.domain.embedded.ExamSettings;
@@ -40,17 +39,15 @@ import com.htto.backend.dto.response.SubjectResponse;
 import com.htto.backend.dto.response.TeacherProfileResponse;
 import com.htto.backend.repository.AccountRepository;
 import com.htto.backend.repository.ClassSubjectTeacherRepository;
+import com.htto.backend.repository.ExamAttemptRepository;
 import com.htto.backend.repository.ExamQuestionRepository;
 import com.htto.backend.repository.ExamRepository;
 import com.htto.backend.repository.QuestionBankRepository;
 import com.htto.backend.repository.QuestionRepository;
 import com.htto.backend.repository.SchoolClassRepository;
 import com.htto.backend.repository.SubjectRepository;
-import com.htto.backend.repository.SubmissionRepository;
-import com.htto.backend.repository.SystemLogRepository;
 import com.htto.backend.repository.TeacherProfileRepository;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -82,8 +79,7 @@ public class ExamService {
     private final ClassSubjectTeacherRepository assignmentRepository;
     private final TeacherProfileRepository teacherProfileRepository;
     private final AccountRepository accountRepository;
-    private final SubmissionRepository submissionRepository;
-    private final SystemLogRepository systemLogRepository;
+    private final ExamAttemptRepository examAttemptRepository;
     private final PasswordEncoder passwordEncoder;
     private final MongoTemplate mongoTemplate;
     private final SystemLogService systemLogService;
@@ -99,8 +95,7 @@ public class ExamService {
             ClassSubjectTeacherRepository assignmentRepository,
             TeacherProfileRepository teacherProfileRepository,
             AccountRepository accountRepository,
-            SubmissionRepository submissionRepository,
-            SystemLogRepository systemLogRepository,
+            ExamAttemptRepository examAttemptRepository,
             PasswordEncoder passwordEncoder,
             MongoTemplate mongoTemplate,
             SystemLogService systemLogService,
@@ -115,8 +110,7 @@ public class ExamService {
         this.assignmentRepository = assignmentRepository;
         this.teacherProfileRepository = teacherProfileRepository;
         this.accountRepository = accountRepository;
-        this.submissionRepository = submissionRepository;
-        this.systemLogRepository = systemLogRepository;
+        this.examAttemptRepository = examAttemptRepository;
         this.passwordEncoder = passwordEncoder;
         this.mongoTemplate = mongoTemplate;
         this.systemLogService = systemLogService;
@@ -484,14 +478,7 @@ public class ExamService {
     }
 
     private void logExamPasswordAction(Account account, Exam exam, String action, String detail) {
-        SystemLog log = new SystemLog();
-        log.setUserId(account.getId());
-        log.setAction(action);
-        log.setOccurredAt(Instant.now());
-        log.setTargetType("EXAM");
-        log.setTargetId(exam.getId());
-        log.setDetail(detail + ", examId=" + exam.getId());
-        systemLogRepository.save(log);
+        systemLogService.log(account.getId(), action, "EXAM", exam.getId(), detail + ", examId=" + exam.getId());
     }
 
     private void validateRandomRequest(GenerateRandomQuestionsRequest request) {
@@ -870,10 +857,10 @@ public class ExamService {
     }
 
     private void ensureNoSubmissions(String examId) {
-        if (!submissionRepository.findByExamId(examId).isEmpty()) {
+        if (!examAttemptRepository.findByExamId(examId).isEmpty()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Exam already has submissions and cannot be modified this way"
+                    "Exam already has attempts and cannot be modified this way"
             );
         }
     }

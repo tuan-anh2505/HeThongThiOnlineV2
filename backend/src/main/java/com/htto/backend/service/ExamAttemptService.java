@@ -15,7 +15,6 @@ import com.htto.backend.domain.ExamSession;
 import com.htto.backend.domain.Question;
 import com.htto.backend.domain.Role;
 import com.htto.backend.domain.StudentProfile;
-import com.htto.backend.domain.SystemLog;
 import com.htto.backend.domain.embedded.AnswerDefinition;
 import com.htto.backend.domain.embedded.AnswerOption;
 import com.htto.backend.domain.embedded.ExamAttemptFillBlankRuleSnapshot;
@@ -36,7 +35,6 @@ import com.htto.backend.repository.ExamRepository;
 import com.htto.backend.repository.ExamSessionRepository;
 import com.htto.backend.repository.QuestionRepository;
 import com.htto.backend.repository.StudentProfileRepository;
-import com.htto.backend.repository.SystemLogRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -66,7 +64,6 @@ public class ExamAttemptService {
     private final AccountRepository accountRepository;
     private final StudentProfileRepository studentProfileRepository;
     private final ClassStudentRepository classStudentRepository;
-    private final SystemLogRepository systemLogRepository;
     private final PasswordEncoder passwordEncoder;
     private final ExamAttemptSubmitService examAttemptSubmitService;
     private final SystemLogService systemLogService;
@@ -80,7 +77,6 @@ public class ExamAttemptService {
             AccountRepository accountRepository,
             StudentProfileRepository studentProfileRepository,
             ClassStudentRepository classStudentRepository,
-            SystemLogRepository systemLogRepository,
             PasswordEncoder passwordEncoder,
             ExamAttemptSubmitService examAttemptSubmitService,
             SystemLogService systemLogService
@@ -93,7 +89,6 @@ public class ExamAttemptService {
         this.accountRepository = accountRepository;
         this.studentProfileRepository = studentProfileRepository;
         this.classStudentRepository = classStudentRepository;
-        this.systemLogRepository = systemLogRepository;
         this.passwordEncoder = passwordEncoder;
         this.examAttemptSubmitService = examAttemptSubmitService;
         this.systemLogService = systemLogService;
@@ -180,14 +175,13 @@ public class ExamAttemptService {
     }
 
     private void logWrongExamPassword(Exam exam, StudentProfile student) {
-        SystemLog log = new SystemLog();
-        log.setUserId(student.getAccountId());
-        log.setAction("WRONG_EXAM_PASSWORD");
-        log.setOccurredAt(Instant.now());
-        log.setTargetType("EXAM");
-        log.setTargetId(exam.getId());
-        log.setDetail("Student entered wrong exam password, examId=" + exam.getId());
-        systemLogRepository.save(log);
+        systemLogService.log(
+                student.getAccountId(),
+                "WRONG_EXAM_PASSWORD",
+                "EXAM",
+                exam.getId(),
+                "Student entered wrong exam password, examId=" + exam.getId()
+        );
     }
 
     private boolean canViewScore(Exam exam) {

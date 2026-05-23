@@ -6,6 +6,7 @@ import com.htto.backend.dto.response.ExamAttemptStatusResponse;
 import com.htto.backend.dto.response.SubmitAttemptResponse;
 import com.htto.backend.service.AttemptAnswerService;
 import com.htto.backend.service.ExamAttemptSubmitService;
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,7 +36,7 @@ public class StudentAttemptAnswerController {
     @PostMapping("/{attemptId}/answers")
     public AttemptAnswerSaveResponse createOrUpdateAnswer(
             @PathVariable String attemptId,
-            @RequestBody AttemptAnswerSaveRequest request,
+            @Valid @RequestBody AttemptAnswerSaveRequest request,
             Authentication authentication
     ) {
         return attemptAnswerService.saveAnswer(attemptId, null, request, authentication.getName());
@@ -45,7 +46,7 @@ public class StudentAttemptAnswerController {
     public AttemptAnswerSaveResponse updateAnswer(
             @PathVariable String attemptId,
             @PathVariable String questionId,
-            @RequestBody AttemptAnswerSaveRequest request,
+            @Valid @RequestBody AttemptAnswerSaveRequest request,
             Authentication authentication
     ) {
         return attemptAnswerService.saveAnswer(attemptId, questionId, request, authentication.getName());
