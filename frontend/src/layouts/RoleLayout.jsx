@@ -20,7 +20,16 @@ const NAV_ITEMS = {
     { to: "/admin/logs", label: "Nhật ký hệ thống" },
     { to: "/admin/statistics", label: "Thống kê" }
   ],
-  TEACHER: [{ to: "/teacher/dashboard", label: "Tổng quan" }],
+  TEACHER: [
+    { to: "/teacher/dashboard", label: "Tổng quan" },
+    { to: "/teacher/classes", label: "Lớp phụ trách" },
+    { to: "/teacher/class-students", label: "Sinh viên trong lớp" },
+    { to: "/teacher/question-banks", label: "Ngân hàng câu hỏi" },
+    { to: "/teacher/questions", label: "Câu hỏi" },
+    { to: "/teacher/exams", label: "Bài thi và ca thi" },
+    { to: "/teacher/attempts", label: "Bài làm" },
+    { to: "/teacher/statistics", label: "Thống kê điểm" }
+  ],
   STUDENT: [{ to: "/student/dashboard", label: "Tổng quan" }]
 };
 

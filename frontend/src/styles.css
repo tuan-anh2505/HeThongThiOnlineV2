@@ -584,11 +584,21 @@ p {
   align-items: center;
 }
 
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .admin-two-column {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(320px, 0.85fr);
   gap: 18px;
   align-items: start;
+}
+
+.admin-two-column.wide-left {
+  grid-template-columns: minmax(0, 2.2fr) minmax(360px, 0.8fr);
 }
 
 .admin-three-column {
@@ -703,6 +713,54 @@ p {
   font-size: 1.35rem;
 }
 
+.checkbox-label {
+  display: flex !important;
+  grid-template-columns: none !important;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px !important;
+  font-weight: 700;
+}
+
+.checkbox-label input {
+  width: auto;
+}
+
+.nested-form-group {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e6edf3;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.nested-form-group h4 {
+  margin: 0;
+}
+
+.option-row,
+.matching-row,
+.random-config-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.matching-row,
+.random-config-row {
+  grid-template-columns: 80px minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+
+.random-config-row {
+  grid-template-columns: repeat(4, minmax(120px, 1fr)) auto;
+}
+
+.compact-heading {
+  margin-bottom: 0;
+}
+
 .chart-list {
   display: grid;
   gap: 10px;
@@ -729,6 +787,32 @@ p {
   min-width: 3px;
   border-radius: inherit;
   background: #315f7e;
+}
+
+.attempt-question-list {
+  display: grid;
+  gap: 14px;
+}
+
+.attempt-question-card {
+  padding: 16px;
+  border: 1px solid #e6edf3;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.compact-details {
+  gap: 10px;
+}
+
+.compact-details pre {
+  max-height: 220px;
+  overflow: auto;
+  margin: 0;
+  padding: 10px;
+  border-radius: 6px;
+  background: #f8fafc;
+  white-space: pre-wrap;
 }
 
 @media (max-width: 760px) {
@@ -759,7 +843,14 @@ p {
   .filter-form,
   .form-grid,
   .admin-two-column,
+  .admin-two-column.wide-left,
   .admin-three-column {
+    grid-template-columns: 1fr;
+  }
+
+  .option-row,
+  .matching-row,
+  .random-config-row {
     grid-template-columns: 1fr;
   }
 

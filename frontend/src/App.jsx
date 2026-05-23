@@ -18,6 +18,16 @@ import { ProfilePage } from "./pages/ProfilePage.jsx";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage.jsx";
 import { StudentDashboard } from "./pages/StudentDashboard.jsx";
 import { TeacherDashboard } from "./pages/TeacherDashboard.jsx";
+import { TeacherAttemptDetailPage } from "./pages/teacher/TeacherAttemptDetailPage.jsx";
+import { TeacherAttemptsPage } from "./pages/teacher/TeacherAttemptsPage.jsx";
+import { TeacherClassesPage } from "./pages/teacher/TeacherClassesPage.jsx";
+import { TeacherClassStudentsPage } from "./pages/teacher/TeacherClassStudentsPage.jsx";
+import { TeacherExamQuestionsPage } from "./pages/teacher/TeacherExamQuestionsPage.jsx";
+import { TeacherExamsPage } from "./pages/teacher/TeacherExamsPage.jsx";
+import { TeacherQuestionBanksPage } from "./pages/teacher/TeacherQuestionBanksPage.jsx";
+import { TeacherQuestionsPage } from "./pages/teacher/TeacherQuestionsPage.jsx";
+import { TeacherSessionsPage } from "./pages/teacher/TeacherSessionsPage.jsx";
+import { TeacherStatisticsPage } from "./pages/teacher/TeacherStatisticsPage.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 import { getHomePathForRole } from "./services/authService.js";
 
@@ -86,6 +96,20 @@ export default function App() {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<TeacherDashboard />} />
+        <Route path="classes" element={<TeacherClassesPage />} />
+        <Route path="classes/:classId/students" element={<TeacherClassStudentsPage />} />
+        <Route path="class-students" element={<TeacherClassStudentsPage />} />
+        <Route path="question-banks" element={<TeacherQuestionBanksPage />} />
+        <Route path="question-banks/:bankId/questions" element={<TeacherQuestionsPage />} />
+        <Route path="questions" element={<TeacherQuestionsPage />} />
+        <Route path="exams" element={<TeacherExamsPage />} />
+        <Route path="exams/:examId/questions" element={<TeacherExamQuestionsPage />} />
+        <Route path="exams/:examId/sessions" element={<TeacherSessionsPage />} />
+        <Route path="sessions" element={<TeacherExamsPage />} />
+        <Route path="exams/:examId/attempts" element={<TeacherAttemptsPage />} />
+        <Route path="attempts" element={<TeacherAttemptsPage />} />
+        <Route path="attempts/:attemptId" element={<TeacherAttemptDetailPage />} />
+        <Route path="statistics" element={<TeacherStatisticsPage />} />
       </Route>
 
       <Route
