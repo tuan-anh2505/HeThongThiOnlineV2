@@ -42,6 +42,9 @@ class QuestionImportFromUrlServiceTest {
     private UrlContentFetchService urlContentFetchService;
 
     @Mock
+    private QuestionTextExtractionService questionTextExtractionService;
+
+    @Mock
     private AccountRepository accountRepository;
 
     @Mock
@@ -57,6 +60,7 @@ class QuestionImportFromUrlServiceTest {
         service = new QuestionImportFromUrlService(
                 questionImportService,
                 urlContentFetchService,
+                questionTextExtractionService,
                 accountRepository,
                 importHistoryRepository,
                 systemLogService
@@ -65,6 +69,15 @@ class QuestionImportFromUrlServiceTest {
         account.setId("account-1");
         account.setUsername(USERNAME);
         lenient().when(accountRepository.findByUsernameAndDeletedFalse(USERNAME)).thenReturn(Optional.of(account));
+        lenient().when(questionTextExtractionService.extractFromUrl(any(), any())).thenAnswer(invocation -> {
+            FetchedUrlContent fetchedContent = invocation.getArgument(0);
+            ImportSourceType sourceType = invocation.getArgument(1);
+            ImportSourceType resolvedType = sourceType == ImportSourceType.AUTO ? ImportSourceType.TXT : sourceType;
+            return new ExtractedQuestionContent(
+                    resolvedType,
+                    new String(fetchedContent.content(), StandardCharsets.UTF_8)
+            );
+        });
     }
 
     @Test

@@ -102,13 +102,34 @@ export const teacherService = {
     return apiRequest(`/api/question-banks/${bankId}/questions${buildQuery(filters)}`);
   },
 
-  importQuestionsFromFile(bankId, file) {
+  importQuestionsFromFile(bankId, file, sourceType = "AUTO") {
     const formData = new FormData();
     formData.append("file", file);
-    return apiRequest(`/api/question-banks/${bankId}/import`, {
+    return apiRequest(`/api/question-banks/${bankId}/import${buildQuery({ sourceType })}`, {
       method: "POST",
       body: formData
     });
+  },
+
+  importQuestionsFromUrl(bankId, payload) {
+    return requestWithBody(`/api/question-banks/${bankId}/import-from-url`, "POST", payload);
+  },
+
+  previewAiQuestionsFromFile(bankId, file, sourceType = "AUTO") {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiRequest(`/api/question-banks/${bankId}/ai-import/file/preview${buildQuery({ sourceType })}`, {
+      method: "POST",
+      body: formData
+    });
+  },
+
+  previewAiQuestionsFromUrl(bankId, payload) {
+    return requestWithBody(`/api/question-banks/${bankId}/ai-import/url/preview`, "POST", payload);
+  },
+
+  commitAiQuestions(bankId, questions) {
+    return requestWithBody(`/api/question-banks/${bankId}/ai-import/commit`, "POST", { questions });
   },
 
   createQuestion(bankId, payload) {

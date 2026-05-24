@@ -9,16 +9,12 @@ import com.htto.backend.dto.response.QuestionImportErrorResponse;
 import com.htto.backend.dto.response.QuestionImportResponse;
 import com.htto.backend.repository.AccountRepository;
 import com.htto.backend.repository.QuestionImportHistoryRepository;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.util.HtmlUtils;
 
 @Service
 public class QuestionImportFromUrlService {
@@ -28,6 +24,7 @@ public class QuestionImportFromUrlService {
 
     private final QuestionImportService questionImportService;
     private final UrlContentFetchService urlContentFetchService;
+    private final QuestionTextExtractionService questionTextExtractionService;
     private final AccountRepository accountRepository;
     private final QuestionImportHistoryRepository importHistoryRepository;
     private final SystemLogService systemLogService;
@@ -35,12 +32,14 @@ public class QuestionImportFromUrlService {
     public QuestionImportFromUrlService(
             QuestionImportService questionImportService,
             UrlContentFetchService urlContentFetchService,
+            QuestionTextExtractionService questionTextExtractionService,
             AccountRepository accountRepository,
             QuestionImportHistoryRepository importHistoryRepository,
             SystemLogService systemLogService
     ) {
         this.questionImportService = questionImportService;
         this.urlContentFetchService = urlContentFetchService;
+        this.questionTextExtractionService = questionTextExtractionService;
         this.accountRepository = accountRepository;
         this.importHistoryRepository = importHistoryRepository;
         this.systemLogService = systemLogService;
@@ -63,11 +62,14 @@ public class QuestionImportFromUrlService {
 
         try {
             FetchedUrlContent fetchedContent = urlContentFetchService.fetch(request.url());
-            resolvedType = resolveSourceType(requestedType, fetchedContent);
-            String text = extractText(fetchedContent, resolvedType);
+            ExtractedQuestionContent extractedContent = questionTextExtractionService.extractFromUrl(
+                    fetchedContent,
+                    requestedType
+            );
+            resolvedType = extractedContent.sourceType();
             QuestionImportResponse importResponse = questionImportService.importTextContent(
                     questionBankId,
-                    text,
+                    extractedContent.text(),
                     username
             );
             result = toResultResponse(importResponse);
@@ -77,75 +79,6 @@ public class QuestionImportFromUrlService {
 
         saveHistoryAndLog(account, questionBankId, request.url(), resolvedType, result);
         return result;
-    }
-
-    private ImportSourceType resolveSourceType(ImportSourceType requestedType, FetchedUrlContent fetchedContent) {
-        if (requestedType != ImportSourceType.AUTO) {
-            return requestedType;
-        }
-
-        String contentType = normalizeContentType(fetchedContent.contentType());
-        if (contentType.equals("text/plain")) {
-            return ImportSourceType.TXT;
-        }
-        if (contentType.equals("text/html")) {
-            return ImportSourceType.HTML;
-        }
-        if (contentType.equals("application/pdf")) {
-            return ImportSourceType.PDF;
-        }
-        if (contentType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document")) {
-            return ImportSourceType.DOCX;
-        }
-
-        String path = fetchedContent.uri().getPath();
-        if (path != null) {
-            String lowerPath = path.toLowerCase(Locale.ROOT);
-            if (lowerPath.endsWith(".txt")) {
-                return ImportSourceType.TXT;
-            }
-            if (lowerPath.endsWith(".html") || lowerPath.endsWith(".htm")) {
-                return ImportSourceType.HTML;
-            }
-            if (lowerPath.endsWith(".pdf")) {
-                return ImportSourceType.PDF;
-            }
-            if (lowerPath.endsWith(".docx")) {
-                return ImportSourceType.DOCX;
-            }
-        }
-
-        return ImportSourceType.TXT;
-    }
-
-    private String extractText(FetchedUrlContent fetchedContent, ImportSourceType sourceType) {
-        String rawText = new String(fetchedContent.content(), StandardCharsets.UTF_8);
-        return switch (sourceType) {
-            case TXT, AUTO -> rawText;
-            case HTML -> htmlToText(rawText);
-            case DOCX -> throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "DOCX import from URL is not supported yet"
-            );
-            case PDF -> throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "PDF import from URL is not supported yet"
-            );
-        };
-    }
-
-    private String htmlToText(String html) {
-        if (html == null) {
-            return "";
-        }
-        String withoutScripts = html
-                .replaceAll("(?is)<script[^>]*>.*?</script>", "")
-                .replaceAll("(?is)<style[^>]*>.*?</style>", "");
-        String withLineBreaks = withoutScripts
-                .replaceAll("(?i)<br\\s*/?>", "\n")
-                .replaceAll("(?i)</(p|div|li|tr|h1|h2|h3|h4|h5|h6|pre)>", "\n");
-        String withoutTags = withLineBreaks.replaceAll("(?s)<[^>]+>", "");
-        return HtmlUtils.htmlUnescape(withoutTags);
     }
 
     private ImportQuestionsResultResponse toResultResponse(QuestionImportResponse importResponse) {
@@ -213,13 +146,6 @@ public class QuestionImportFromUrlService {
                 + ", success=" + result.success()
                 + ", importedCount=" + result.importedCount()
                 + ", failedCount=" + result.failedCount();
-    }
-
-    private String normalizeContentType(String contentType) {
-        if (!StringUtils.hasText(contentType)) {
-            return "";
-        }
-        return contentType.split(";", 2)[0].trim().toLowerCase(Locale.ROOT);
     }
 
     private String reasonOf(ResponseStatusException ex) {

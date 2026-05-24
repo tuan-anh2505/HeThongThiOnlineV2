@@ -1,6 +1,7 @@
 package com.htto.backend.service;
 
 import com.htto.backend.domain.DomainEnums.Difficulty;
+import com.htto.backend.domain.DomainEnums.ImportSourceType;
 import com.htto.backend.domain.DomainEnums.QuestionStatus;
 import com.htto.backend.domain.DomainEnums.QuestionType;
 import com.htto.backend.dto.request.AnswerDefinitionRequest;
@@ -10,15 +11,13 @@ import com.htto.backend.dto.request.MatchingPairRequest;
 import com.htto.backend.dto.request.QuestionCreateRequest;
 import com.htto.backend.dto.response.QuestionImportErrorResponse;
 import com.htto.backend.dto.response.QuestionImportResponse;
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,21 +29,82 @@ public class QuestionImportService {
     private static final String QUESTION_MARKER = "[QUESTION]";
 
     private final QuestionService questionService;
+    private final QuestionTextExtractionService questionTextExtractionService;
+
+    @Autowired
+    public QuestionImportService(
+            QuestionService questionService,
+            QuestionTextExtractionService questionTextExtractionService
+    ) {
+        this.questionService = questionService;
+        this.questionTextExtractionService = questionTextExtractionService;
+    }
 
     public QuestionImportService(QuestionService questionService) {
         this.questionService = questionService;
+        this.questionTextExtractionService = new QuestionTextExtractionService();
     }
 
     public QuestionImportResponse importTxt(String questionBankId, MultipartFile file, String username) {
-        validateImportAccess(questionBankId, username);
-        validateFile(file);
+        return importFile(questionBankId, file, ImportSourceType.TXT, username);
+    }
 
-        return importParsedText(questionBankId, readFile(file), username);
+    public QuestionImportResponse importFile(
+            String questionBankId,
+            MultipartFile file,
+            ImportSourceType sourceType,
+            String username
+    ) {
+        validateImportAccess(questionBankId, username);
+        ExtractedQuestionContent extractedContent = questionTextExtractionService.extractFromFile(file, sourceType);
+        return importParsedText(questionBankId, extractedContent.text(), username);
     }
 
     public QuestionImportResponse importTextContent(String questionBankId, String content, String username) {
         validateImportAccess(questionBankId, username);
         return importParsedText(questionBankId, content, username);
+    }
+
+    public QuestionImportResponse importStructuredQuestions(
+            String questionBankId,
+            List<QuestionCreateRequest> requests,
+            String username
+    ) {
+        validateImportAccess(questionBankId, username);
+        if (requests == null || requests.isEmpty()) {
+            return QuestionImportResponse.failed(
+                    0,
+                    List.of(new QuestionImportErrorResponse(0, 0, "No valid questions to import"))
+            );
+        }
+
+        List<QuestionImportErrorResponse> errors = validateStructuredQuestions(requests);
+        if (!errors.isEmpty()) {
+            return QuestionImportResponse.failed(requests.size(), errors);
+        }
+
+        return QuestionImportResponse.success(questionService.importQuestions(questionBankId, requests, username));
+    }
+
+    public List<QuestionImportErrorResponse> validateStructuredQuestions(List<QuestionCreateRequest> requests) {
+        List<QuestionImportErrorResponse> errors = new ArrayList<>();
+        if (requests == null || requests.isEmpty()) {
+            errors.add(new QuestionImportErrorResponse(0, 0, "No questions were extracted"));
+            return errors;
+        }
+
+        for (int i = 0; i < requests.size(); i++) {
+            try {
+                questionService.validateQuestionCreateRequest(requests.get(i));
+            } catch (ResponseStatusException ex) {
+                errors.add(new QuestionImportErrorResponse(
+                        i + 1,
+                        0,
+                        ex.getReason() == null ? "Invalid question" : ex.getReason()
+                ));
+            }
+        }
+        return errors;
     }
 
     public void validateImportAccess(String questionBankId, String username) {
@@ -87,28 +147,6 @@ public class QuestionImportService {
                 parsedQuestions.stream().map(ParsedQuestion::request).toList(),
                 username
         ));
-    }
-
-    private void validateFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Import file is required");
-        }
-
-        String filename = file.getOriginalFilename();
-        if (!StringUtils.hasText(filename) || !filename.toLowerCase(Locale.ROOT).endsWith(".txt")) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Only .txt import is supported. DOCX/PDF can be added later as an extension."
-            );
-        }
-    }
-
-    private String readFile(MultipartFile file) {
-        try {
-            return new String(file.getBytes(), StandardCharsets.UTF_8);
-        } catch (IOException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot read import file");
-        }
     }
 
     private ParseResult parse(String content) {

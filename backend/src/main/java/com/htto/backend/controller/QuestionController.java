@@ -1,14 +1,18 @@
 package com.htto.backend.controller;
 
 import com.htto.backend.domain.DomainEnums.Difficulty;
+import com.htto.backend.domain.DomainEnums.ImportSourceType;
 import com.htto.backend.domain.DomainEnums.QuestionStatus;
 import com.htto.backend.domain.DomainEnums.QuestionType;
+import com.htto.backend.dto.request.AiQuestionImportCommitRequest;
 import com.htto.backend.dto.request.ImportQuestionsFromUrlRequest;
 import com.htto.backend.dto.request.QuestionCreateRequest;
 import com.htto.backend.dto.request.QuestionUpdateRequest;
+import com.htto.backend.dto.response.AiQuestionImportPreviewResponse;
 import com.htto.backend.dto.response.ImportQuestionsResultResponse;
 import com.htto.backend.dto.response.QuestionImportResponse;
 import com.htto.backend.dto.response.QuestionResponse;
+import com.htto.backend.service.AiQuestionImportService;
 import com.htto.backend.service.QuestionImportFromUrlService;
 import com.htto.backend.service.QuestionImportService;
 import com.htto.backend.service.QuestionService;
@@ -40,15 +44,18 @@ public class QuestionController {
     private final QuestionService questionService;
     private final QuestionImportService questionImportService;
     private final QuestionImportFromUrlService questionImportFromUrlService;
+    private final AiQuestionImportService aiQuestionImportService;
 
     public QuestionController(
             QuestionService questionService,
             QuestionImportService questionImportService,
-            QuestionImportFromUrlService questionImportFromUrlService
+            QuestionImportFromUrlService questionImportFromUrlService,
+            AiQuestionImportService aiQuestionImportService
     ) {
         this.questionService = questionService;
         this.questionImportService = questionImportService;
         this.questionImportFromUrlService = questionImportFromUrlService;
+        this.aiQuestionImportService = aiQuestionImportService;
     }
 
     @GetMapping("/question-banks/{bankId}/questions")
@@ -86,9 +93,15 @@ public class QuestionController {
     public ResponseEntity<QuestionImportResponse> importQuestions(
             @PathVariable String bankId,
             @RequestParam("file") MultipartFile file,
+            @RequestParam(required = false) ImportSourceType sourceType,
             Authentication authentication
     ) {
-        QuestionImportResponse response = questionImportService.importTxt(bankId, file, authentication.getName());
+        QuestionImportResponse response = questionImportService.importFile(
+                bankId,
+                file,
+                sourceType == null ? ImportSourceType.AUTO : sourceType,
+                authentication.getName()
+        );
         return ResponseEntity
                 .status(response.success() ? HttpStatus.OK : HttpStatus.BAD_REQUEST)
                 .body(response);
@@ -101,6 +114,46 @@ public class QuestionController {
             Authentication authentication
     ) {
         ImportQuestionsResultResponse response = questionImportFromUrlService.importFromUrl(
+                bankId,
+                request,
+                authentication.getName()
+        );
+        return ResponseEntity
+                .status(response.success() ? HttpStatus.OK : HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
+    @PostMapping(value = "/question-banks/{bankId}/ai-import/file/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public AiQuestionImportPreviewResponse previewAiImportFromFile(
+            @PathVariable String bankId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(required = false) ImportSourceType sourceType,
+            Authentication authentication
+    ) {
+        return aiQuestionImportService.previewFromFile(
+                bankId,
+                file,
+                sourceType == null ? ImportSourceType.AUTO : sourceType,
+                authentication.getName()
+        );
+    }
+
+    @PostMapping("/question-banks/{bankId}/ai-import/url/preview")
+    public AiQuestionImportPreviewResponse previewAiImportFromUrl(
+            @PathVariable String bankId,
+            @Valid @RequestBody ImportQuestionsFromUrlRequest request,
+            Authentication authentication
+    ) {
+        return aiQuestionImportService.previewFromUrl(bankId, request, authentication.getName());
+    }
+
+    @PostMapping("/question-banks/{bankId}/ai-import/commit")
+    public ResponseEntity<QuestionImportResponse> commitAiImport(
+            @PathVariable String bankId,
+            @Valid @RequestBody AiQuestionImportCommitRequest request,
+            Authentication authentication
+    ) {
+        QuestionImportResponse response = aiQuestionImportService.commitPreview(
                 bankId,
                 request,
                 authentication.getName()

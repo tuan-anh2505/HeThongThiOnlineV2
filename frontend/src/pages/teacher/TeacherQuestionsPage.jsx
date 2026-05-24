@@ -6,6 +6,7 @@ import { formatDateTime, resolveErrorMessage } from "./teacherUtils.js";
 const QUESTION_TYPES = ["TRUE_FALSE", "MULTIPLE_CHOICE", "FILL_BLANK", "MATCHING"];
 const DIFFICULTIES = ["EASY", "MEDIUM", "HARD"];
 const QUESTION_STATUSES = ["ACTIVE", "INACTIVE"];
+const IMPORT_SOURCE_TYPES = ["AUTO", "TXT", "DOCX", "PDF", "HTML"];
 
 const initialFilters = {
   type: "",
@@ -62,6 +63,16 @@ function getImportFailedCount(result) {
   return Array.isArray(result.errors) ? result.errors.length : 0;
 }
 
+function getImportTotalCount(result) {
+  if (!result) {
+    return 0;
+  }
+  if (Number.isFinite(result.totalQuestions)) {
+    return result.totalQuestions;
+  }
+  return (result.importedCount ?? 0) + getImportFailedCount(result);
+}
+
 function formatImportError(error) {
   if (typeof error === "string") {
     return error;
@@ -101,10 +112,20 @@ export function TeacherQuestionsPage() {
   const [form, setForm] = useState(createInitialForm);
   const [editing, setEditing] = useState(false);
   const [importFile, setImportFile] = useState(null);
+  const [importFileSourceType, setImportFileSourceType] = useState("AUTO");
+  const [importUrl, setImportUrl] = useState("");
+  const [importUrlSourceType, setImportUrlSourceType] = useState("AUTO");
   const [importResult, setImportResult] = useState(null);
+  const [aiImportMode, setAiImportMode] = useState("FILE");
+  const [aiFile, setAiFile] = useState(null);
+  const [aiUrl, setAiUrl] = useState("");
+  const [aiSourceType, setAiSourceType] = useState("AUTO");
+  const [aiPreview, setAiPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [aiPreviewing, setAiPreviewing] = useState(false);
+  const [aiSaving, setAiSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -247,7 +268,7 @@ export function TeacherQuestionsPage() {
 
     setImporting(true);
     try {
-      const response = await teacherService.importQuestionsFromFile(selectedBankId, importFile);
+      const response = await teacherService.importQuestionsFromFile(selectedBankId, importFile, importFileSourceType);
       setImportResult(response);
       setImportFile(null);
       event.currentTarget.reset();
@@ -263,6 +284,121 @@ export function TeacherQuestionsPage() {
       }
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleImportUrl = async (event) => {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    setImportResult(null);
+
+    if (!selectedBankId) {
+      setError("Vui lòng chọn ngân hàng câu hỏi trước khi import");
+      return;
+    }
+    if (!importUrl.trim()) {
+      setError("Vui lòng nhập link thư viện câu hỏi");
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const response = await teacherService.importQuestionsFromUrl(selectedBankId, {
+        url: importUrl,
+        sourceType: importUrlSourceType
+      });
+      setImportResult(response);
+      setMessage(`Đã import ${response?.importedCount ?? 0} câu hỏi từ link`);
+      await loadQuestions(selectedBankId, filters);
+    } catch (err) {
+      const importResponse = getImportResponseFromError(err);
+      if (importResponse) {
+        setImportResult(importResponse);
+        setError("Nội dung từ link có lỗi, chưa lưu câu hỏi");
+      } else {
+        setError(resolveErrorMessage(err, "Không thể import câu hỏi từ link"));
+      }
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleAiPreview = async (event) => {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    setAiPreview(null);
+
+    if (!selectedBankId) {
+      setError("Vui lòng chọn ngân hàng câu hỏi trước khi import bằng AI");
+      return;
+    }
+    if (aiImportMode === "FILE" && !aiFile) {
+      setError("Vui lòng chọn file để AI đọc nội dung");
+      return;
+    }
+    if (aiImportMode === "URL" && !aiUrl.trim()) {
+      setError("Vui lòng nhập link để AI đọc nội dung");
+      return;
+    }
+
+    setAiPreviewing(true);
+    try {
+      const response =
+        aiImportMode === "FILE"
+          ? await teacherService.previewAiQuestionsFromFile(selectedBankId, aiFile, aiSourceType)
+          : await teacherService.previewAiQuestionsFromUrl(selectedBankId, {
+              url: aiUrl,
+              sourceType: aiSourceType
+            });
+      setAiPreview(response);
+      if (response?.success) {
+        setMessage(`AI đã tạo preview ${response.validCount ?? 0} câu hỏi hợp lệ`);
+      } else {
+        setError("Preview AI còn lỗi, vui lòng kiểm tra trước khi lưu");
+      }
+    } catch (err) {
+      setError(resolveErrorMessage(err, "Không thể tạo preview bằng AI"));
+    } finally {
+      setAiPreviewing(false);
+    }
+  };
+
+  const handleAiCommit = async () => {
+    setError("");
+    setMessage("");
+
+    if (!aiPreview?.success) {
+      setError("Chỉ lưu khi toàn bộ câu hỏi trong preview hợp lệ");
+      return;
+    }
+
+    const questionsToSave = (aiPreview.questions ?? [])
+      .filter((draft) => draft.valid && draft.question)
+      .map((draft) => draft.question);
+    if (questionsToSave.length === 0) {
+      setError("Không có câu hỏi hợp lệ để lưu");
+      return;
+    }
+
+    setAiSaving(true);
+    try {
+      const response = await teacherService.commitAiQuestions(selectedBankId, questionsToSave);
+      setImportResult(response);
+      setAiPreview(null);
+      setMessage(`Đã lưu ${response?.importedCount ?? 0} câu hỏi từ preview AI`);
+      await loadQuestions(selectedBankId, filters);
+    } catch (err) {
+      const importResponse = getImportResponseFromError(err);
+      if (importResponse) {
+        setImportResult(importResponse);
+        setError("Backend từ chối lưu preview vì dữ liệu chưa hợp lệ");
+      } else {
+        setError(resolveErrorMessage(err, "Không thể lưu câu hỏi từ preview AI"));
+      }
+    } finally {
+      setAiSaving(false);
     }
   };
 
@@ -456,6 +592,8 @@ export function TeacherQuestionsPage() {
                 setSelectedBankId(event.target.value);
                 setImportResult(null);
                 setImportFile(null);
+                setAiPreview(null);
+                setAiFile(null);
               }}
             >
               <option value="">Chọn ngân hàng</option>
@@ -528,29 +666,70 @@ export function TeacherQuestionsPage() {
       <section className="admin-panel">
         <div className="panel-heading">
           <div>
-            <h3>Import từ file</h3>
-            <p className="import-help">Hỗ trợ file TXT theo format [QUESTION]. Dữ liệu lỗi sẽ không được lưu một phần.</p>
+            <h3>Import theo định dạng [QUESTION]</h3>
+            <p className="import-help">
+              Hỗ trợ TXT, DOCX, PDF, HTML nếu nội dung bên trong vẫn dùng format [QUESTION]. Dữ liệu lỗi sẽ không được lưu một phần.
+            </p>
           </div>
         </div>
-        <form className="filter-form" onSubmit={handleImportFile}>
-          <label>
-            File TXT
-            <input
-              type="file"
-              accept=".txt,text/plain"
-              onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
-            />
-          </label>
-          <div className="form-actions">
-            <button className="primary-button" type="submit" disabled={importing || !selectedBankId}>
-              {importing ? "Đang import..." : "Import từ file"}
-            </button>
-          </div>
-        </form>
+        <div className="import-grid">
+          <form className="stacked-form import-card" onSubmit={handleImportFile}>
+            <label>
+              File
+              <input
+                type="file"
+                accept=".txt,.docx,.pdf,.html,.htm,text/plain,application/pdf,text/html,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
+              />
+            </label>
+            <label>
+              Loại nguồn
+              <select value={importFileSourceType} onChange={(event) => setImportFileSourceType(event.target.value)}>
+                {IMPORT_SOURCE_TYPES.map((sourceType) => (
+                  <option key={sourceType} value={sourceType}>
+                    {sourceType}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="form-actions">
+              <button className="primary-button" type="submit" disabled={importing || !selectedBankId}>
+                {importing ? "Đang import..." : "Import file"}
+              </button>
+            </div>
+          </form>
+
+          <form className="stacked-form import-card" onSubmit={handleImportUrl}>
+            <label>
+              Link thư viện
+              <input
+                type="url"
+                value={importUrl}
+                onChange={(event) => setImportUrl(event.target.value)}
+                placeholder="https://example.com/questions.docx"
+              />
+            </label>
+            <label>
+              Loại nguồn
+              <select value={importUrlSourceType} onChange={(event) => setImportUrlSourceType(event.target.value)}>
+                {IMPORT_SOURCE_TYPES.map((sourceType) => (
+                  <option key={sourceType} value={sourceType}>
+                    {sourceType}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="form-actions">
+              <button className="primary-button" type="submit" disabled={importing || !selectedBankId}>
+                {importing ? "Đang import..." : "Import từ link"}
+              </button>
+            </div>
+          </form>
+        </div>
         {importResult ? (
           <div className={`import-result ${importResult.success ? "success" : "failed"}`}>
             <div className="import-result-summary">
-              <span>Tổng số câu: {importResult.totalQuestions ?? 0}</span>
+              <span>Tổng số câu: {getImportTotalCount(importResult)}</span>
               <span>Import thành công: {importResult.importedCount ?? 0}</span>
               <span>Câu lỗi: {getImportFailedCount(importResult)}</span>
             </div>
@@ -563,6 +742,128 @@ export function TeacherQuestionsPage() {
                 ))}
               </ul>
             ) : null}
+          </div>
+        ) : null}
+      </section>
+
+      <section className="admin-panel">
+        <div className="panel-heading">
+          <div>
+            <h3>Import bằng AI</h3>
+            <p className="import-help">
+              Dùng cho file hoặc link không có định dạng cố định. AI chỉ chuyển nội dung thô thành preview câu hỏi, backend vẫn validate trước khi lưu.
+            </p>
+          </div>
+        </div>
+        <form className="filter-form" onSubmit={handleAiPreview}>
+          <label>
+            Nguồn
+            <select
+              value={aiImportMode}
+              onChange={(event) => {
+                setAiImportMode(event.target.value);
+                setAiPreview(null);
+              }}
+            >
+              <option value="FILE">File</option>
+              <option value="URL">Link</option>
+            </select>
+          </label>
+          <label>
+            Loại nguồn
+            <select value={aiSourceType} onChange={(event) => setAiSourceType(event.target.value)}>
+              {IMPORT_SOURCE_TYPES.map((sourceType) => (
+                <option key={sourceType} value={sourceType}>
+                  {sourceType}
+                </option>
+              ))}
+            </select>
+          </label>
+          {aiImportMode === "FILE" ? (
+            <label>
+              File không có định dạng
+              <input
+                type="file"
+                accept=".txt,.docx,.pdf,.html,.htm,text/plain,application/pdf,text/html,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={(event) => setAiFile(event.target.files?.[0] ?? null)}
+              />
+            </label>
+          ) : (
+            <label>
+              Link không có định dạng
+              <input
+                type="url"
+                value={aiUrl}
+                onChange={(event) => setAiUrl(event.target.value)}
+                placeholder="https://example.com/question-library"
+              />
+            </label>
+          )}
+          <div className="form-actions">
+            <button className="primary-button" type="submit" disabled={aiPreviewing || !selectedBankId}>
+              {aiPreviewing ? "Đang tạo preview..." : "Đọc và tạo preview"}
+            </button>
+          </div>
+        </form>
+
+        {aiPreview ? (
+          <div className={`import-result ${aiPreview.success ? "success" : "failed"}`}>
+            <div className="import-result-summary">
+              <span>Tổng số câu: {aiPreview.totalQuestions ?? 0}</span>
+              <span>Hợp lệ: {aiPreview.validCount ?? 0}</span>
+              <span>Có lỗi: {aiPreview.failedCount ?? 0}</span>
+            </div>
+            {aiPreview.errors?.length ? (
+              <ul className="import-error-list">
+                {aiPreview.errors.map((item, index) => (
+                  <li key={`${item}-${index}`}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
+            {aiPreview.questions?.length ? (
+              <div className="ai-preview-list">
+                {aiPreview.questions.map((draft) => (
+                  <article className="ai-preview-item" key={draft.questionIndex}>
+                    <div className="panel-heading compact-heading">
+                      <h4>Câu {draft.questionIndex}</h4>
+                      <span className={`status-pill ${draft.valid ? "active" : "inactive"}`}>
+                        {draft.valid ? "Hợp lệ" : "Có lỗi"}
+                      </span>
+                    </div>
+                    {draft.question ? (
+                      <dl className="preview-details">
+                        <div>
+                          <dt>Loại</dt>
+                          <dd>{draft.question.type}</dd>
+                        </div>
+                        <div>
+                          <dt>Nội dung</dt>
+                          <dd>{draft.question.content}</dd>
+                        </div>
+                        <div>
+                          <dt>Điểm</dt>
+                          <dd>{draft.question.score}</dd>
+                        </div>
+                        <div>
+                          <dt>Mức độ</dt>
+                          <dd>{draft.question.difficulty}</dd>
+                        </div>
+                        <div>
+                          <dt>Chủ đề</dt>
+                          <dd>{draft.question.topic || "-"}</dd>
+                        </div>
+                      </dl>
+                    ) : null}
+                    {!draft.valid ? <p className="inline-note">Lỗi: {draft.error}</p> : null}
+                  </article>
+                ))}
+              </div>
+            ) : null}
+            <div className="form-actions">
+              <button className="primary-button" type="button" onClick={handleAiCommit} disabled={aiSaving || !aiPreview.success}>
+                {aiSaving ? "Đang lưu..." : "Lưu câu hỏi từ preview"}
+              </button>
+            </div>
           </div>
         ) : null}
       </section>
