@@ -2,6 +2,13 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { studentService } from "../../services/studentService.js";
 import { formatNumber, resolveErrorMessage } from "./studentUtils.js";
+import {
+  formatAnswerStatus,
+  formatCorrectAnswer,
+  formatQuestionType,
+  formatStudentAnswer,
+  shouldShowStudentAnswer
+} from "../../utils/reviewAnswerFormatter.js";
 
 export function StudentReviewPage() {
   const { attemptId } = useParams();
@@ -77,37 +84,62 @@ export function StudentReviewPage() {
                 Câu {index + 1}: {item.content}
               </h3>
               <span className={`status-pill ${item.isCorrect ? "active" : "inactive"}`}>
-                {item.answerStatus || "-"}
+                {formatAnswerStatus(item)}
               </span>
             </div>
             <p className="muted-text">
-              {item.type} - {formatNumber(item.score)} điểm
+              {formatQuestionType(item.type)} - {formatNumber(item.score)} điểm
             </p>
             <dl className="profile-details compact-details">
-              <div>
-                <dt>Câu trả lời của bạn</dt>
-                <dd>
-                  <pre>{JSON.stringify(item.studentAnswer ?? null, null, 2)}</pre>
-                </dd>
-              </div>
+              {shouldShowStudentAnswer(item) ? (
+                <div>
+                  <dt>Câu trả lời của bạn</dt>
+                  <dd>
+                    <AnswerLines lines={formatStudentAnswer(item)} />
+                  </dd>
+                </div>
+              ) : null}
               {review?.scoreVisible ? (
                 <div>
                   <dt>Điểm đạt được</dt>
                   <dd>{formatNumber(item.scoreAchieved)}</dd>
                 </div>
               ) : null}
-              {item.correctAnswer ? (
+              {review?.correctAnswerVisible ? (
                 <div>
                   <dt>Đáp án đúng</dt>
                   <dd>
-                    <pre>{JSON.stringify(item.correctAnswer, null, 2)}</pre>
+                    <AnswerLines lines={formatCorrectAnswer(item)} />
                   </dd>
                 </div>
-              ) : null}
+              ) : (
+                <div>
+                  <dt>Đáp án đúng</dt>
+                  <dd className="muted-text">Đáp án đúng chưa được công bố</dd>
+                </div>
+              )}
             </dl>
           </article>
         ))}
       </div>
     </section>
+  );
+}
+
+function AnswerLines({ lines }) {
+  if (!Array.isArray(lines) || lines.length === 0) {
+    return <span>Chưa trả lời</span>;
+  }
+
+  if (lines.length === 1) {
+    return <span>{lines[0]}</span>;
+  }
+
+  return (
+    <div className="answer-lines">
+      {lines.map((line, index) => (
+        <span key={`${line}-${index}`}>{line}</span>
+      ))}
+    </div>
   );
 }

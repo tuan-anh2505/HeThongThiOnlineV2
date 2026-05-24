@@ -102,6 +102,15 @@ export const teacherService = {
     return apiRequest(`/api/question-banks/${bankId}/questions${buildQuery(filters)}`);
   },
 
+  importQuestionsFromFile(bankId, file) {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiRequest(`/api/question-banks/${bankId}/import`, {
+      method: "POST",
+      body: formData
+    });
+  },
+
   createQuestion(bankId, payload) {
     return requestWithBody(`/api/question-banks/${bankId}/questions`, "POST", payload);
   },

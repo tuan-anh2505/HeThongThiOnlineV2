@@ -49,6 +49,49 @@ function createInitialForm() {
   };
 }
 
+function getImportFailedCount(result) {
+  if (!result) {
+    return 0;
+  }
+  if (Number.isFinite(result.failedCount)) {
+    return result.failedCount;
+  }
+  if (Number.isFinite(result.totalQuestions) && Number.isFinite(result.importedCount)) {
+    return Math.max(result.totalQuestions - result.importedCount, 0);
+  }
+  return Array.isArray(result.errors) ? result.errors.length : 0;
+}
+
+function formatImportError(error) {
+  if (typeof error === "string") {
+    return error;
+  }
+
+  const parts = [];
+  if (error?.questionIndex > 0) {
+    parts.push(`Câu ${error.questionIndex}`);
+  }
+  if (error?.lineNumber > 0) {
+    parts.push(`dòng ${error.lineNumber}`);
+  }
+  if (error?.message) {
+    parts.push(error.message);
+  }
+
+  return parts.length ? parts.join(": ") : "Dữ liệu import không hợp lệ";
+}
+
+function getImportResponseFromError(error) {
+  const body = error?.body;
+  if (!body || typeof body !== "object") {
+    return null;
+  }
+  if ("success" in body || "errors" in body || "importedCount" in body || "totalQuestions" in body) {
+    return body;
+  }
+  return null;
+}
+
 export function TeacherQuestionsPage() {
   const { bankId: routeBankId } = useParams();
   const [questionBanks, setQuestionBanks] = useState([]);
@@ -57,8 +100,11 @@ export function TeacherQuestionsPage() {
   const [questions, setQuestions] = useState([]);
   const [form, setForm] = useState(createInitialForm);
   const [editing, setEditing] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importResult, setImportResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -182,6 +228,42 @@ export function TeacherQuestionsPage() {
   const handleSearch = (event) => {
     event.preventDefault();
     loadQuestions(selectedBankId, filters);
+  };
+
+  const handleImportFile = async (event) => {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    setImportResult(null);
+
+    if (!selectedBankId) {
+      setError("Vui lòng chọn ngân hàng câu hỏi trước khi import");
+      return;
+    }
+    if (!importFile) {
+      setError("Vui lòng chọn file TXT để import");
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const response = await teacherService.importQuestionsFromFile(selectedBankId, importFile);
+      setImportResult(response);
+      setImportFile(null);
+      event.currentTarget.reset();
+      setMessage(`Đã import ${response?.importedCount ?? 0} câu hỏi từ file`);
+      await loadQuestions(selectedBankId, filters);
+    } catch (err) {
+      const importResponse = getImportResponseFromError(err);
+      if (importResponse) {
+        setImportResult(importResponse);
+        setError("File import có lỗi, chưa lưu câu hỏi");
+      } else {
+        setError(resolveErrorMessage(err, "Không thể import câu hỏi từ file"));
+      }
+    } finally {
+      setImporting(false);
+    }
   };
 
   const buildAnswerPayload = () => {
@@ -368,7 +450,14 @@ export function TeacherQuestionsPage() {
         <form className="filter-form" onSubmit={handleSearch}>
           <label>
             Ngân hàng
-            <select value={selectedBankId} onChange={(event) => setSelectedBankId(event.target.value)}>
+            <select
+              value={selectedBankId}
+              onChange={(event) => {
+                setSelectedBankId(event.target.value);
+                setImportResult(null);
+                setImportFile(null);
+              }}
+            >
               <option value="">Chọn ngân hàng</option>
               {questionBanks.map((bank) => (
                 <option key={bank.questionBankId} value={bank.questionBankId}>
@@ -434,6 +523,48 @@ export function TeacherQuestionsPage() {
             </button>
           </div>
         </form>
+      </section>
+
+      <section className="admin-panel">
+        <div className="panel-heading">
+          <div>
+            <h3>Import từ file</h3>
+            <p className="import-help">Hỗ trợ file TXT theo format [QUESTION]. Dữ liệu lỗi sẽ không được lưu một phần.</p>
+          </div>
+        </div>
+        <form className="filter-form" onSubmit={handleImportFile}>
+          <label>
+            File TXT
+            <input
+              type="file"
+              accept=".txt,text/plain"
+              onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
+            />
+          </label>
+          <div className="form-actions">
+            <button className="primary-button" type="submit" disabled={importing || !selectedBankId}>
+              {importing ? "Đang import..." : "Import từ file"}
+            </button>
+          </div>
+        </form>
+        {importResult ? (
+          <div className={`import-result ${importResult.success ? "success" : "failed"}`}>
+            <div className="import-result-summary">
+              <span>Tổng số câu: {importResult.totalQuestions ?? 0}</span>
+              <span>Import thành công: {importResult.importedCount ?? 0}</span>
+              <span>Câu lỗi: {getImportFailedCount(importResult)}</span>
+            </div>
+            {importResult.errors?.length ? (
+              <ul className="import-error-list">
+                {importResult.errors.map((item, index) => (
+                  <li key={`${item?.questionIndex ?? 0}-${item?.lineNumber ?? 0}-${index}`}>
+                    {formatImportError(item)}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       <div className="admin-two-column wide-left">
