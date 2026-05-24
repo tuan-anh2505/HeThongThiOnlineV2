@@ -283,7 +283,7 @@ public class ExamService {
         ensureCanManageExam(getCurrentAccount(username), exam);
         exam.setStatus(ExamStatus.CANCELLED);
         examRepository.save(exam);
-        systemLogService.logCurrentUser("DELETE_EXAM", "EXAM", exam.getId(), "Cancelled exam by delete action");
+        systemLogService.logCurrentUser("CANCEL_EXAM", "EXAM", exam.getId(), "Cancelled exam by legacy delete endpoint");
     }
 
     public ExamResponse addQuestion(String id, ExamQuestionCreateRequest request, String username) {

@@ -150,19 +150,24 @@ export function AdminAssignmentsPage() {
     }
   };
 
-  const handleDelete = async (assignment) => {
-    const className = assignment.schoolClass?.classCode || assignment.classId;
-    const subjectName = assignment.subject?.subjectCode || assignment.subjectId;
-    if (!window.confirm(`Bạn chắc chắn muốn xóa hoặc ngừng hoạt động phân công ${className} - ${subjectName}?`)) {
+  const handleStatusChange = async (assignment) => {
+    const isActive = assignment.status === "ACTIVE";
+    const actionLabel = isActive ? "ngừng hoạt động" : "khôi phục";
+    if (!window.confirm(`Bạn có chắc muốn ${actionLabel} dữ liệu này không?`)) {
       return;
     }
 
     try {
-      await adminService.deleteAssignment(assignment.id);
-      setMessage("Đã xóa hoặc ngừng hoạt động phân công");
+      if (isActive) {
+        await adminService.deactivateAssignment(assignment.id);
+        setMessage("Đã ngừng hoạt động phân công");
+      } else {
+        await adminService.activateAssignment(assignment.id);
+        setMessage("Đã khôi phục phân công");
+      }
       await loadAssignments(filters);
     } catch (err) {
-      setError(resolveErrorMessage(err, "Không thể xóa phân công"));
+      setError(resolveErrorMessage(err, "Không thể cập nhật trạng thái phân công"));
     }
   };
 
@@ -281,8 +286,12 @@ export function AdminAssignmentsPage() {
                         <button className="text-button" type="button" onClick={() => handleEdit(assignment)}>
                           Sửa
                         </button>
-                        <button className="danger-text-button" type="button" onClick={() => handleDelete(assignment)}>
-                          Xóa
+                        <button
+                          className={assignment.status === "ACTIVE" ? "danger-text-button" : "text-button"}
+                          type="button"
+                          onClick={() => handleStatusChange(assignment)}
+                        >
+                          {assignment.status === "ACTIVE" ? "Ngừng hoạt động" : "Khôi phục"}
                         </button>
                       </div>
                     </td>

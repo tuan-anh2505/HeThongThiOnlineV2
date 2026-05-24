@@ -155,12 +155,34 @@ public class ClassSubjectTeacherService {
         return toResponse(saved);
     }
 
-    public void deleteAssignment(String id) {
+    public ClassSubjectTeacherResponse deactivateAssignment(String id) {
         ClassSubjectTeacher assignment = getAssignmentOrThrow(id);
         assignment.setStatus(AssignmentStatus.INACTIVE);
-        assignmentRepository.save(assignment);
+        ClassSubjectTeacher saved = assignmentRepository.save(assignment);
         syncTeacherScope(assignment.getTeacherId());
-        systemLogService.logCurrentUser("DELETE_CLASS_SUBJECT_TEACHER", "CLASS_SUBJECT_TEACHER", assignment.getId(), "Set class-subject-teacher assignment inactive");
+        systemLogService.logCurrentUser(
+                "DEACTIVATE_CLASS_SUBJECT_TEACHER",
+                "CLASS_SUBJECT_TEACHER",
+                saved.getId(),
+                "Deactivated class-subject-teacher assignment"
+        );
+        return toResponse(saved);
+    }
+
+    public ClassSubjectTeacherResponse activateAssignment(String id) {
+        ClassSubjectTeacher assignment = getAssignmentOrThrow(id);
+        validateAssignmentTargets(assignment.getClassId(), assignment.getSubjectId(), assignment.getTeacherId());
+        ensureNoActiveDuplicate(assignment.getClassId(), assignment.getSubjectId(), assignment.getTeacherId(), id);
+        assignment.setStatus(AssignmentStatus.ACTIVE);
+        ClassSubjectTeacher saved = assignmentRepository.save(assignment);
+        syncTeacherScope(saved.getTeacherId());
+        systemLogService.logCurrentUser(
+                "ACTIVATE_CLASS_SUBJECT_TEACHER",
+                "CLASS_SUBJECT_TEACHER",
+                saved.getId(),
+                "Activated class-subject-teacher assignment"
+        );
+        return toResponse(saved);
     }
 
     public List<ClassSubjectTeacherResponse> getTeacherSubjects(String username) {

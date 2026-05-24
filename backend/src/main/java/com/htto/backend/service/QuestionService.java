@@ -184,13 +184,24 @@ public class QuestionService {
         return QuestionResponse.from(saved);
     }
 
-    public void deleteQuestion(String id, String username) {
+    public QuestionResponse deactivateQuestion(String id, String username) {
         Question question = getQuestionOrThrow(id);
         QuestionBank questionBank = getQuestionBankOrThrow(question.getQuestionBankId());
         ensureCanAccessBank(getCurrentAccount(username), questionBank);
         question.setStatus(QuestionStatus.INACTIVE);
-        questionRepository.save(question);
-        systemLogService.logCurrentUser("DELETE_QUESTION", "QUESTION", question.getId(), "Set question inactive");
+        Question saved = questionRepository.save(question);
+        systemLogService.logCurrentUser("DEACTIVATE_QUESTION", "QUESTION", saved.getId(), "Deactivated question");
+        return QuestionResponse.from(saved);
+    }
+
+    public QuestionResponse activateQuestion(String id, String username) {
+        Question question = getQuestionOrThrow(id);
+        QuestionBank questionBank = getActiveQuestionBankOrThrow(question.getQuestionBankId());
+        ensureCanAccessBank(getCurrentAccount(username), questionBank);
+        question.setStatus(QuestionStatus.ACTIVE);
+        Question saved = questionRepository.save(question);
+        systemLogService.logCurrentUser("ACTIVATE_QUESTION", "QUESTION", saved.getId(), "Activated question");
+        return QuestionResponse.from(saved);
     }
 
     private Question buildQuestion(String questionBankId, QuestionCreateRequest request) {

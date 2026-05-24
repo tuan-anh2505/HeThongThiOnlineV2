@@ -184,21 +184,37 @@ public class QuestionBankService {
         return toResponse(saved);
     }
 
-    public void deleteQuestionBank(String id, String username) {
+    public QuestionBankResponse deactivateQuestionBank(String id, String username) {
         Account account = getCurrentAccount(username);
         QuestionBank questionBank = getQuestionBankOrThrow(id);
         ensureCanAccess(account, questionBank);
 
-        if (!examRepository.findByQuestionBankId(questionBank.getId()).isEmpty()) {
-            questionBank.setStatus(QuestionBankStatus.INACTIVE);
-            questionBankRepository.save(questionBank);
-            systemLogService.logCurrentUser("DELETE_QUESTION_BANK", "QUESTION_BANK", questionBank.getId(), "Set question bank inactive");
-            return;
+        questionBank.setStatus(QuestionBankStatus.INACTIVE);
+        QuestionBank saved = questionBankRepository.save(questionBank);
+        systemLogService.logCurrentUser(
+                "DEACTIVATE_QUESTION_BANK",
+                "QUESTION_BANK",
+                saved.getId(),
+                examRepository.findByQuestionBankId(saved.getId()).isEmpty()
+                        ? "Deactivated question bank"
+                        : "Deactivated question bank used by exams"
+        );
+        return toResponse(saved);
+    }
+
+    public QuestionBankResponse activateQuestionBank(String id, String username) {
+        Account account = getCurrentAccount(username);
+        QuestionBank questionBank = getQuestionBankOrThrow(id);
+        ensureCanAccess(account, questionBank);
+        Subject subject = getActiveSubject(questionBank.getSubjectId());
+        if (account.getRole() == Role.TEACHER) {
+            ensureTeacherAssignedToSubject(questionBank.getTeacherId(), subject.getId());
         }
 
-        questionBank.setStatus(QuestionBankStatus.INACTIVE);
-        questionBankRepository.save(questionBank);
-        systemLogService.logCurrentUser("DELETE_QUESTION_BANK", "QUESTION_BANK", questionBank.getId(), "Set question bank inactive");
+        questionBank.setStatus(QuestionBankStatus.ACTIVE);
+        QuestionBank saved = questionBankRepository.save(questionBank);
+        systemLogService.logCurrentUser("ACTIVATE_QUESTION_BANK", "QUESTION_BANK", saved.getId(), "Activated question bank");
+        return toResponse(saved);
     }
 
     private TeacherProfile resolveTeacherForCreate(Account account, String requestedTeacherId, String subjectId) {

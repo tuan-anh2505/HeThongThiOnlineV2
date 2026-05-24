@@ -90,6 +90,14 @@ export const teacherService = {
     return apiRequest(`/api/question-banks/${id}`, { method: "DELETE" });
   },
 
+  deactivateQuestionBank(id) {
+    return apiRequest(`/api/question-banks/${id}/deactivate`, { method: "PATCH" });
+  },
+
+  activateQuestionBank(id) {
+    return apiRequest(`/api/question-banks/${id}/activate`, { method: "PATCH" });
+  },
+
   searchQuestions(bankId, filters) {
     return apiRequest(`/api/question-banks/${bankId}/questions${buildQuery(filters)}`);
   },
@@ -104,6 +112,14 @@ export const teacherService = {
 
   deleteQuestion(questionId) {
     return apiRequest(`/api/questions/${questionId}`, { method: "DELETE" });
+  },
+
+  deactivateQuestion(questionId) {
+    return apiRequest(`/api/questions/${questionId}/deactivate`, { method: "PATCH" });
+  },
+
+  activateQuestion(questionId) {
+    return apiRequest(`/api/questions/${questionId}/activate`, { method: "PATCH" });
   },
 
   searchExams(filters) {

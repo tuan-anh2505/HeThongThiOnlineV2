@@ -136,17 +136,24 @@ export function AdminClassesPage() {
     }
   };
 
-  const handleDelete = async (schoolClass) => {
-    if (!window.confirm(`Bạn chắc chắn muốn xóa hoặc ngừng hoạt động lớp ${schoolClass.classCode}?`)) {
+  const handleStatusChange = async (schoolClass) => {
+    const isActive = schoolClass.status === "ACTIVE";
+    const actionLabel = isActive ? "ngừng hoạt động" : "khôi phục";
+    if (!window.confirm(`Bạn có chắc muốn ${actionLabel} dữ liệu này không?`)) {
       return;
     }
 
     try {
-      await adminService.deleteClass(schoolClass.classId);
-      setMessage("Đã xóa hoặc ngừng hoạt động lớp");
+      if (isActive) {
+        await adminService.deactivateClass(schoolClass.classId);
+        setMessage("Đã ngừng hoạt động lớp");
+      } else {
+        await adminService.activateClass(schoolClass.classId);
+        setMessage("Đã khôi phục lớp");
+      }
       await loadClasses(filters);
     } catch (err) {
-      setError(resolveErrorMessage(err, "Không thể xóa lớp"));
+      setError(resolveErrorMessage(err, "Không thể cập nhật trạng thái lớp"));
     }
   };
 
@@ -241,8 +248,12 @@ export function AdminClassesPage() {
                         <button className="text-button" type="button" onClick={() => handleEdit(schoolClass)}>
                           Sửa
                         </button>
-                        <button className="danger-text-button" type="button" onClick={() => handleDelete(schoolClass)}>
-                          Xóa
+                        <button
+                          className={schoolClass.status === "ACTIVE" ? "danger-text-button" : "text-button"}
+                          type="button"
+                          onClick={() => handleStatusChange(schoolClass)}
+                        >
+                          {schoolClass.status === "ACTIVE" ? "Ngừng hoạt động" : "Khôi phục"}
                         </button>
                       </div>
                     </td>

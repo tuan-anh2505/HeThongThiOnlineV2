@@ -175,15 +175,6 @@ export function TeacherSessionsPage() {
                         >
                           Hủy ca
                         </button>
-                        <button
-                          className="danger-text-button"
-                          type="button"
-                          onClick={() =>
-                            runSessionAction("xóa ca thi", () => teacherService.deleteExamSession(session.examSessionId))
-                          }
-                        >
-                          Xóa
-                        </button>
                       </div>
                     </td>
                   </tr>

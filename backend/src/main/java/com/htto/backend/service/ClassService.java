@@ -141,11 +141,20 @@ public class ClassService {
         return ClassResponse.from(saved);
     }
 
-    public void deleteClass(String id) {
+    public ClassResponse deactivateClass(String id) {
         SchoolClass schoolClass = getClassOrThrow(id);
         schoolClass.setStatus(ClassStatus.INACTIVE);
-        schoolClassRepository.save(schoolClass);
-        systemLogService.logCurrentUser("DELETE_CLASS", "CLASS", schoolClass.getId(), "Set class inactive");
+        SchoolClass saved = schoolClassRepository.save(schoolClass);
+        systemLogService.logCurrentUser("DEACTIVATE_CLASS", "CLASS", saved.getId(), "Deactivated class");
+        return ClassResponse.from(saved);
+    }
+
+    public ClassResponse activateClass(String id) {
+        SchoolClass schoolClass = getClassOrThrow(id);
+        schoolClass.setStatus(ClassStatus.ACTIVE);
+        SchoolClass saved = schoolClassRepository.save(schoolClass);
+        systemLogService.logCurrentUser("ACTIVATE_CLASS", "CLASS", saved.getId(), "Activated class");
+        return ClassResponse.from(saved);
     }
 
     public List<ClassStudentResponse> getStudents(String classId, String username) {

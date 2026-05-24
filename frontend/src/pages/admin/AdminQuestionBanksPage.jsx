@@ -142,17 +142,24 @@ export function AdminQuestionBanksPage() {
     }
   };
 
-  const handleDelete = async (questionBank) => {
-    if (!window.confirm(`Bạn chắc chắn muốn khóa hoặc xóa mềm ngân hàng câu hỏi ${questionBank.name}?`)) {
+  const handleStatusChange = async (questionBank) => {
+    const isActive = questionBank.status === "ACTIVE";
+    const actionLabel = isActive ? "ngừng hoạt động" : "khôi phục";
+    if (!window.confirm(`Bạn có chắc muốn ${actionLabel} dữ liệu này không?`)) {
       return;
     }
 
     try {
-      await adminService.deleteQuestionBank(questionBank.questionBankId);
-      setMessage("Đã khóa hoặc xóa mềm ngân hàng câu hỏi");
+      if (isActive) {
+        await adminService.deactivateQuestionBank(questionBank.questionBankId);
+        setMessage("Đã ngừng hoạt động ngân hàng câu hỏi");
+      } else {
+        await adminService.activateQuestionBank(questionBank.questionBankId);
+        setMessage("Đã khôi phục ngân hàng câu hỏi");
+      }
       await loadQuestionBanks(filters);
     } catch (err) {
-      setError(resolveErrorMessage(err, "Không thể xóa ngân hàng câu hỏi"));
+      setError(resolveErrorMessage(err, "Không thể cập nhật trạng thái ngân hàng câu hỏi"));
     }
   };
 
@@ -253,11 +260,11 @@ export function AdminQuestionBanksPage() {
                           Sửa
                         </button>
                         <button
-                          className="danger-text-button"
+                          className={questionBank.status === "ACTIVE" ? "danger-text-button" : "text-button"}
                           type="button"
-                          onClick={() => handleDelete(questionBank)}
+                          onClick={() => handleStatusChange(questionBank)}
                         >
-                          Xóa mềm
+                          {questionBank.status === "ACTIVE" ? "Ngừng hoạt động" : "Khôi phục"}
                         </button>
                       </div>
                     </td>

@@ -21,6 +21,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -132,6 +133,22 @@ public class QuestionController {
             @PathVariable String id,
             Authentication authentication
     ) {
-        questionService.deleteQuestion(id, authentication.getName());
+        questionService.deactivateQuestion(id, authentication.getName());
+    }
+
+    @PatchMapping("/questions/{id}/deactivate")
+    public QuestionResponse deactivateQuestion(
+            @PathVariable String id,
+            Authentication authentication
+    ) {
+        return questionService.deactivateQuestion(id, authentication.getName());
+    }
+
+    @PatchMapping("/questions/{id}/activate")
+    public QuestionResponse activateQuestion(
+            @PathVariable String id,
+            Authentication authentication
+    ) {
+        return questionService.activateQuestion(id, authentication.getName());
     }
 }

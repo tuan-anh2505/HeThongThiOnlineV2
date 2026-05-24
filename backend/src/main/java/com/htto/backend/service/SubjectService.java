@@ -93,11 +93,20 @@ public class SubjectService {
         return SubjectResponse.from(saved);
     }
 
-    public void deleteSubject(String id) {
+    public SubjectResponse deactivateSubject(String id) {
         Subject subject = getSubjectOrThrow(id);
         subject.setStatus(SubjectStatus.INACTIVE);
-        subjectRepository.save(subject);
-        systemLogService.logCurrentUser("DELETE_SUBJECT", "SUBJECT", subject.getId(), "Set subject inactive");
+        Subject saved = subjectRepository.save(subject);
+        systemLogService.logCurrentUser("DEACTIVATE_SUBJECT", "SUBJECT", saved.getId(), "Deactivated subject");
+        return SubjectResponse.from(saved);
+    }
+
+    public SubjectResponse activateSubject(String id) {
+        Subject subject = getSubjectOrThrow(id);
+        subject.setStatus(SubjectStatus.ACTIVE);
+        Subject saved = subjectRepository.save(subject);
+        systemLogService.logCurrentUser("ACTIVATE_SUBJECT", "SUBJECT", saved.getId(), "Activated subject");
+        return SubjectResponse.from(saved);
     }
 
     private Subject getSubjectOrThrow(String id) {

@@ -55,6 +55,11 @@ export function TeacherExamsPage() {
     return [...map.values()];
   }, [assignments]);
 
+  const activeQuestionBanks = useMemo(
+    () => questionBanks.filter((bank) => bank.status === "ACTIVE"),
+    [questionBanks]
+  );
+
   const loadExams = async (nextFilters = filters) => {
     setLoading(true);
     setError("");
@@ -421,7 +426,7 @@ export function TeacherExamsPage() {
               Ngân hàng câu hỏi
               <select name="questionBankId" value={form.questionBankId} onChange={updateForm} required>
                 <option value="">Chọn ngân hàng</option>
-                {questionBanks.map((bank) => (
+                {activeQuestionBanks.map((bank) => (
                   <option key={bank.questionBankId} value={bank.questionBankId}>
                     {bank.name}
                   </option>

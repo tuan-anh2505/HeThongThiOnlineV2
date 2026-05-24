@@ -332,17 +332,24 @@ export function TeacherQuestionsPage() {
     });
   };
 
-  const handleDelete = async (question) => {
-    if (!window.confirm("Bạn chắc chắn muốn xóa mềm câu hỏi này?")) {
+  const handleStatusChange = async (question) => {
+    const isActive = question.status === "ACTIVE";
+    const actionLabel = isActive ? "ngừng hoạt động" : "khôi phục";
+    if (!window.confirm(`Bạn có chắc muốn ${actionLabel} dữ liệu này không?`)) {
       return;
     }
 
     try {
-      await teacherService.deleteQuestion(question.questionId);
-      setMessage("Đã xóa mềm câu hỏi");
+      if (isActive) {
+        await teacherService.deactivateQuestion(question.questionId);
+        setMessage("Đã ngừng hoạt động câu hỏi");
+      } else {
+        await teacherService.activateQuestion(question.questionId);
+        setMessage("Đã khôi phục câu hỏi");
+      }
       await loadQuestions(selectedBankId, filters);
     } catch (err) {
-      setError(resolveErrorMessage(err, "Không thể xóa câu hỏi"));
+      setError(resolveErrorMessage(err, "Không thể cập nhật trạng thái câu hỏi"));
     }
   };
 
@@ -468,8 +475,12 @@ export function TeacherQuestionsPage() {
                         <button className="text-button" type="button" onClick={() => handleEdit(question)}>
                           Sửa
                         </button>
-                        <button className="danger-text-button" type="button" onClick={() => handleDelete(question)}>
-                          Xóa
+                        <button
+                          className={question.status === "ACTIVE" ? "danger-text-button" : "text-button"}
+                          type="button"
+                          onClick={() => handleStatusChange(question)}
+                        >
+                          {question.status === "ACTIVE" ? "Ngừng hoạt động" : "Khôi phục"}
                         </button>
                       </div>
                     </td>

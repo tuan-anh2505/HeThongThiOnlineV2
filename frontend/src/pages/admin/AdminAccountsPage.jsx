@@ -220,20 +220,6 @@ export function AdminAccountsPage() {
     }
   };
 
-  const handleDelete = async (account) => {
-    if (!window.confirm(`Bạn chắc chắn muốn xóa mềm tài khoản ${account.username}?`)) {
-      return;
-    }
-
-    try {
-      await adminService.deleteAccount(account.id);
-      setMessage("Đã xóa mềm tài khoản");
-      await loadAccounts(filters);
-    } catch (err) {
-      setError(resolveErrorMessage(err, "Không thể xóa tài khoản"));
-    }
-  };
-
   return (
     <section className="admin-page">
       <div className="section-heading">
@@ -342,9 +328,6 @@ export function AdminAccountsPage() {
                             Khóa
                           </button>
                         )}
-                        <button className="danger-text-button" type="button" onClick={() => handleDelete(account)}>
-                          Xóa
-                        </button>
                       </div>
                     </td>
                   </tr>

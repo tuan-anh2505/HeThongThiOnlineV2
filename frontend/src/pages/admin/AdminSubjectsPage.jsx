@@ -119,17 +119,24 @@ export function AdminSubjectsPage() {
     }
   };
 
-  const handleDelete = async (subject) => {
-    if (!window.confirm(`Bạn chắc chắn muốn xóa hoặc ngừng hoạt động môn ${subject.subjectCode}?`)) {
+  const handleStatusChange = async (subject) => {
+    const isActive = subject.status === "ACTIVE";
+    const actionLabel = isActive ? "ngừng hoạt động" : "khôi phục";
+    if (!window.confirm(`Bạn có chắc muốn ${actionLabel} dữ liệu này không?`)) {
       return;
     }
 
     try {
-      await adminService.deleteSubject(subject.subjectId);
-      setMessage("Đã xóa hoặc ngừng hoạt động môn thi");
+      if (isActive) {
+        await adminService.deactivateSubject(subject.subjectId);
+        setMessage("Đã ngừng hoạt động môn thi");
+      } else {
+        await adminService.activateSubject(subject.subjectId);
+        setMessage("Đã khôi phục môn thi");
+      }
       await loadSubjects(filters);
     } catch (err) {
-      setError(resolveErrorMessage(err, "Không thể xóa môn thi"));
+      setError(resolveErrorMessage(err, "Không thể cập nhật trạng thái môn thi"));
     }
   };
 
@@ -211,8 +218,12 @@ export function AdminSubjectsPage() {
                         <button className="text-button" type="button" onClick={() => handleEdit(subject)}>
                           Sửa
                         </button>
-                        <button className="danger-text-button" type="button" onClick={() => handleDelete(subject)}>
-                          Xóa
+                        <button
+                          className={subject.status === "ACTIVE" ? "danger-text-button" : "text-button"}
+                          type="button"
+                          onClick={() => handleStatusChange(subject)}
+                        >
+                          {subject.status === "ACTIVE" ? "Ngừng hoạt động" : "Khôi phục"}
                         </button>
                       </div>
                     </td>

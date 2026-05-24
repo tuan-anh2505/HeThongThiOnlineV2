@@ -7,7 +7,6 @@ import com.htto.backend.dto.request.AccountCreateRequest;
 import com.htto.backend.dto.request.AccountUpdateRequest;
 import com.htto.backend.dto.response.AccountResponse;
 import com.htto.backend.repository.AccountRepository;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -121,11 +120,11 @@ public class AccountService {
 
     public void softDelete(String id) {
         Account account = getAccountOrThrow(id);
-        account.setDeleted(true);
-        account.setDeletedAt(Instant.now());
+        account.setDeleted(false);
+        account.setDeletedAt(null);
         account.setStatus(AccountStatus.LOCKED);
         accountRepository.save(account);
-        systemLogService.logCurrentUser("DELETE_ACCOUNT", "ACCOUNT", account.getId(), "Soft-deleted account");
+        systemLogService.logCurrentUser("LOCK_ACCOUNT", "ACCOUNT", account.getId(), "Locked account by legacy delete endpoint");
     }
 
     public AccountResponse getByUsername(String username) {

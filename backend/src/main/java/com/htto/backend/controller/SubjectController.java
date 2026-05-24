@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -62,6 +63,16 @@ public class SubjectController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteSubject(@PathVariable String id) {
-        subjectService.deleteSubject(id);
+        subjectService.deactivateSubject(id);
+    }
+
+    @PatchMapping("/{id}/deactivate")
+    public SubjectResponse deactivateSubject(@PathVariable String id) {
+        return subjectService.deactivateSubject(id);
+    }
+
+    @PatchMapping("/{id}/activate")
+    public SubjectResponse activateSubject(@PathVariable String id) {
+        return subjectService.activateSubject(id);
     }
 }

@@ -100,6 +100,14 @@ export const adminService = {
     return apiRequest(`/api/classes/${id}`, { method: "DELETE" });
   },
 
+  deactivateClass(id) {
+    return apiRequest(`/api/classes/${id}/deactivate`, { method: "PATCH" });
+  },
+
+  activateClass(id) {
+    return apiRequest(`/api/classes/${id}/activate`, { method: "PATCH" });
+  },
+
   getClassStudents(classId) {
     return apiRequest(`/api/classes/${classId}/students`);
   },
@@ -128,6 +136,14 @@ export const adminService = {
     return apiRequest(`/api/subjects/${id}`, { method: "DELETE" });
   },
 
+  deactivateSubject(id) {
+    return apiRequest(`/api/subjects/${id}/deactivate`, { method: "PATCH" });
+  },
+
+  activateSubject(id) {
+    return apiRequest(`/api/subjects/${id}/activate`, { method: "PATCH" });
+  },
+
   searchAssignments(filters) {
     return apiRequest(`/api/class-subject-teachers${buildQuery(filters)}`);
   },
@@ -144,6 +160,14 @@ export const adminService = {
     return apiRequest(`/api/class-subject-teachers/${id}`, { method: "DELETE" });
   },
 
+  deactivateAssignment(id) {
+    return apiRequest(`/api/class-subject-teachers/${id}/deactivate`, { method: "PATCH" });
+  },
+
+  activateAssignment(id) {
+    return apiRequest(`/api/class-subject-teachers/${id}/activate`, { method: "PATCH" });
+  },
+
   searchQuestionBanks(filters) {
     return apiRequest(`/api/question-banks${buildQuery(filters)}`);
   },
@@ -158,6 +182,14 @@ export const adminService = {
 
   deleteQuestionBank(id) {
     return apiRequest(`/api/question-banks/${id}`, { method: "DELETE" });
+  },
+
+  deactivateQuestionBank(id) {
+    return apiRequest(`/api/question-banks/${id}/deactivate`, { method: "PATCH" });
+  },
+
+  activateQuestionBank(id) {
+    return apiRequest(`/api/question-banks/${id}/activate`, { method: "PATCH" });
   },
 
   searchExams(filters) {
